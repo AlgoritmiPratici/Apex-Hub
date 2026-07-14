@@ -1,140 +1,142 @@
 import streamlit as st
 import pandas as pd
-import requests
 import time
+import requests
 import plotly.express as px
 
 # ==========================================
-# 1. CONFIGURAZIONE E ROUTING INVISIBILE
+# 1. CONFIGURAZIONE E ROUTING
 # ==========================================
 st.set_page_config(
-    page_title="APEX Global Infrastructure", 
+    page_title="APEX & ZERO HUB", 
     layout="wide", 
     initial_sidebar_state="auto"
 )
 
-# Estrazione dinamica del brand. Se l'utente arriva da RisorsaZero, NON DEVE VEDERE AlgoritmiPratici.
-query_params = st.query_params
-target_brand = query_params.get("target", "AlgoritmiPratici")
+# Routing tramite URL (es: ?hub=tech oppure ?hub=zero)
+hub_richiesto = st.query_params.get("hub", "tech")
+index_default = 0 if hub_richiesto == "tech" else 1
 
 # ==========================================
-# 2. INIEZIONE CSS MICRO-ESTETICA (PREMIUM)
+# 2. INIEZIONE CSS MINIMALE (PULIZIA)
 # ==========================================
 st.markdown("""
     <style>
-    /* Rimozione Branding Streamlit */
     #MainMenu {visibility: hidden;}
     header {visibility: hidden;}
     footer {visibility: hidden;}
     div.stDeployButton {visibility: hidden;}
     
-    /* Tipografia e Spaziature Premium */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-    html, body, [class*="st-"] {
-        font-family: 'Inter', sans-serif;
-    }
+    .highlight { color: #10B981; font-weight: bold; }
+    .card { background-color: #111622; padding: 1.5rem; border-radius: 8px; border: 1px solid #222C3A; margin-bottom: 1rem; }
     
-    /* Titoli Massicci e Puliti */
-    h1 { font-weight: 800 !important; letter-spacing: -0.05em; margin-bottom: 1.5rem !important; }
-    h2, h3 { font-weight: 700 !important; letter-spacing: -0.03em; }
-    .highlight { color: #10B981 !important; font-weight: 700; }
-    
-    /* Card Glassmorphism */
-    .card {
-        background: rgba(17, 22, 34, 0.7);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        padding: 1.8rem;
-        border-radius: 8px;
-        border: 1px solid rgba(226, 232, 240, 0.05);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        margin-bottom: 1.5rem;
+    div.stButton > button {
+        background-color: #10B981 !important; color: #0A0D14 !important; font-weight: bold !important; width: 100% !important;
     }
-    
-    /* Pulsanti Ingegnerizzati */
-    div.stButton > button, div.stDownloadButton > button {
-        background: linear-gradient(135deg, #10B981 0%, #059669 100%) !important;
-        color: #0A0D14 !important;
-        font-weight: 800 !important;
-        border-radius: 6px !important;
-        border: none !important;
-        padding: 0.6rem 0 !important;
-        width: 100% !important;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        transition: all 0.2s ease-in-out;
-    }
-    div.stButton > button:hover, div.stDownloadButton > button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3);
-    }
-    
-    /* Fix Blocchi Codice per renderli asettici */
-    div[data-testid="stCodeBlock"] {
-        border-radius: 6px;
-        border: 1px solid rgba(226, 232, 240, 0.1);
+    div.stDownloadButton > button {
+        background-color: #1E293B !important; color: #E2E8F0 !important; font-weight: bold !important; width: 100% !important; border: 1px solid #334155 !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
 # ==========================================
-# 3. ROUTING ISOLATO (EVITA LA CONTAMINAZIONE)
+# 3. NAVIGAZIONE SIDEBAR
 # ==========================================
-# Sezione: AlgoritmiPratici
-if target_brand == "AlgoritmiPratici":
-    st.sidebar.markdown("<div style='color: #10B981; font-weight:800; font-size:1.2rem; text-align:center;'>APEX CORE</div>", unsafe_allow_html=True)
-    st.sidebar.markdown("---")
-    modulo = st.sidebar.radio("MODULI OPERATIVI:", [
-        "01. Normalizzazione CSV", "02. Blindatura .env", "03. Estrattore Telegram", 
-        "04. Matrice Cloud", "05. Dashboard Analitica", "06. Webhook Router", "07. Iniezione CRM"
+st.sidebar.markdown("<h2 style='text-align: center; color: #E2E8F0;'>MODULI ESECUTIVI</h2>", unsafe_allow_html=True)
+scelta_hub = st.sidebar.radio("Seleziona Ecosistema:", ["📌 Asset 00: AlgoritmiPratici", "📁 Asset 03: RisorsaZero"], index=index_default)
+st.sidebar.markdown("---")
+
+# ==========================================
+# ECOSISTEMA: ALGORITMIPRATICI (ASSET 00)
+# ==========================================
+if scelta_hub == "📌 Asset 00: AlgoritmiPratici":
+    modulo = st.sidebar.selectbox("Strumenti Tech B2B:", [
+        "01. Normalizzazione CSV", "02. Sicurezza .env", "03. Estrattore Telegram", 
+        "04. Matrice Cloud", "05. Dashboard Live", "06. Webhook Router", "07. Sync CRM"
     ])
     
     if modulo == "01. Normalizzazione CSV":
-        st.title("⚙️ Normalizzazione Dataset CSV")
-        st.markdown("<div class='card'>Innestare il database grezzo. Gli algoritmi elimineranno le ridondanze in <b>3 millisecondi</b>.</div>", unsafe_allow_html=True)
-        uploaded_file = st.file_uploader("Carica File (.csv)", type=["csv"])
+        st.title("⚙️ Motore di Normalizzazione Dataset")
+        st.markdown("Pulisci i tuoi fogli di calcolo in millisecondi.")
+        uploaded_file = st.file_uploader("Carica il tuo file CSV grezzo", type=["csv"])
+        
         if uploaded_file:
-            df = pd.read_csv(uploaded_file, sep=None, engine='python').drop_duplicates()
-            if 'Email' in df.columns:
-                df['Email'] = df['Email'].astype(str).str.lower().str.strip()
-                df = df[~df['Email'].isin(['nan', 'none', '', 'null'])].dropna(subset=['Email'])
-            st.success("Validazione completata.")
-            st.dataframe(df.head(3), use_container_width=True)
-            st.download_button("📥 Scarica Dataset Validato", df.to_csv(index=False).encode('utf-8'), "apex_output.csv", "text/csv")
-        st.markdown("### Codice Sorgente")
-        st.code("import pandas as pd\ndef clean(file):\n    return pd.read_csv(file).drop_duplicates()", language="python")
+            df = pd.read_csv(uploaded_file, sep=None, engine='python')
+            df_clean = df.drop_duplicates()
+            if 'Email' in df_clean.columns:
+                df_clean['Email'] = df_clean['Email'].astype(str).str.lower().str.strip()
+                df_clean = df_clean.dropna(subset=['Email'])
+            
+            st.success("✅ Dataset ottimizzato.")
+            st.dataframe(df_clean.head(5), use_container_width=True)
+            st.download_button("📥 Scarica CSV Pulito", df_clean.to_csv(index=False).encode('utf-8'), "dati_puliti.csv", "text/csv")
 
-    elif modulo == "05. Dashboard Analitica":
-        st.title("📊 Centro di Controllo")
+    elif modulo == "02. Sicurezza .env":
+        st.title("🔒 Protocollo .env")
+        st.markdown("Isola le credenziali dal codice sorgente.")
+        st.code("import os\nfrom dotenv import load_dotenv\nload_dotenv()\nAPI_KEY = os.getenv('API_KEY')", language="python")
+
+    elif modulo == "03. Estrattore Telegram":
+        st.title("📡 Scraper API Telegram")
+        st.markdown("Estrazione lead asincrona via Telethon (Esecuzione in locale richiesta per OTP).")
+        st.code("from telethon.sync import TelegramClient\n# Usa le credenziali da my.telegram.org\nwith TelegramClient('session', API_ID, API_HASH) as client:\n    pass", language="python")
+
+    elif modulo == "04. Matrice Cloud":
+        st.title("🗺️ Stack Backend a Costo Zero")
+        df_stack = pd.DataFrame({"Livello": ["WAF/DNS", "UI", "Automazione", "Database"], "Tool": ["Cloudflare", "Streamlit", "n8n", "Supabase"]})
+        st.table(df_stack)
+
+    elif modulo == "05. Dashboard Live":
+        st.title("📊 Financial Core")
         col1, col2 = st.columns(2)
-        col1.metric("MRR Ecosistema", "€ 42.500", "+12.4%")
-        col2.metric("Latenza Endpoint", "4.2 ms", "-0.8 ms", delta_color="inverse")
-        df_chart = pd.DataFrame({'Dipartimento': ['Sales', 'Marketing', 'IT'], 'Cassa YTD': [85000, -22000, 45000]})
-        fig = px.bar(df_chart, x='Dipartimento', y='Cassa YTD', color='Cassa YTD', color_continuous_scale=['#EF4444', '#10B981'])
+        col1.metric("Revenue", "€ 42.500", "+12.4%")
+        col2.metric("Latenza", "4.2 ms", "-0.8 ms", delta_color="inverse")
+        df_chart = pd.DataFrame({'Reparto': ['Sales', 'Marketing', 'IT'], 'Cassa': [85000, -22000, 45000]})
+        fig = px.bar(df_chart, x='Reparto', y='Cassa', color='Cassa', color_continuous_scale=['#EF4444', '#10B981'])
         fig.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color='#E2E8F0')
         st.plotly_chart(fig, use_container_width=True)
-        
+
+    elif modulo == "06. Webhook Router":
+        st.title("🔀 Router Notifiche API")
+        st.code("from fastapi import FastAPI\napp = FastAPI()\n@app.post('/webhook')\nasync def route(req: dict): return {'status': 'ok'}", language="python")
+
+    elif modulo == "07. Sync CRM":
+        st.title("🔄 Test Iniezione CRM")
+        st.markdown("Simula l'invio asincrono di dati verso un endpoint.")
+        if st.button("Simula Push Dati"):
+            with st.spinner("Connessione API..."):
+                time.sleep(1)
+                st.success("Payload inviato con latenza < 1.2s.")
+
+# ==========================================
+# ECOSISTEMA: RISORSAZERO (ASSET 03)
+# ==========================================
+elif scelta_hub == "📁 Asset 03: RisorsaZero":
+    st.title("⚡ AI Toolkit Database (Top 50)")
+    st.markdown("Perché perdere 100 ore a cercare tool quando l'abbiamo già fatto noi? Filtra, copia o scarica l'archivio.")
+    
+    # Dati simulati del tuo database (puoi espanderlo qui o leggere da un file locale in futuro)
+    dati_ai = [
+        {"Categoria": "Generazione Video", "Tool": "CapCut Pro", "Modello Finanziario": "Freemium", "Link": "capcut.com"},
+        {"Categoria": "Sintesi Vocale", "Tool": "ElevenLabs", "Modello Finanziario": "10k Caratteri Gratis", "Link": "elevenlabs.io"},
+        {"Categoria": "Prompting", "Tool": "Gemini Advanced", "Modello Finanziario": "Abbonamento / Free Tier", "Link": "gemini.google.com"},
+        {"Categoria": "Automazione", "Tool": "n8n", "Modello Finanziario": "Open Source / 0€", "Link": "n8n.io"},
+        {"Categoria": "Database", "Tool": "Supabase", "Modello Finanziario": "Serverless Free Tier", "Link": "supabase.com"}
+    ]
+    df_tools = pd.DataFrame(dati_ai)
+    
+    # Motore di ricerca interno
+    ricerca = st.text_input("🔍 Cerca per categoria, tool o modello (es: Video, Gratis, Open Source)...")
+    
+    if ricerca:
+        # Filtra il dataframe basato sulla ricerca in qualsiasi colonna
+        mask = df_tools.apply(lambda row: row.astype(str).str.contains(ricerca, case=False).any(), axis=1)
+        df_filtrato = df_tools[mask]
     else:
-        st.title("Infrastruttura Offline")
-        st.info("I moduli selezionati sono in fase di aggiornamento crittografico. Riprovare a breve.")
-
-# Sezione: SintesiMentale
-elif target_brand == "SintesiMentale":
-    st.sidebar.markdown("<div style='color: #A855F7; font-weight:800; font-size:1.2rem; text-align:center;'>SINTESIMENTALE</div>", unsafe_allow_html=True)
-    st.title("🧠 Protocolli di Ottimizzazione Neurale")
-    st.markdown("<div class='card'><h3>La Bibbia Faceless dell'Asset Empire</h3>La risorsa strategica definitiva per l'edificazione e lo scaling di un impero multimediale.<br><br><a href='https://tuo-link-gumroad.com'><button style='background:#A855F7; color:white; width:100%; padding:0.8rem; border:none; font-weight:bold; border-radius:4px;'>🔓 SBLOCCA L'EBOOK SU GUMROAD</button></a></div>", unsafe_allow_html=True)
-
-# Sezione: MetodoEstetico
-elif target_brand == "MetodoEstetico":
-    st.sidebar.markdown("<div style='color: #F97316; font-weight:800; font-size:1.2rem; text-align:center;'>METODOESTETICO</div>", unsafe_allow_html=True)
-    st.title("🎨 Ingegneria dell'Ordine Visivo")
-    st.markdown("<div class='card'><h3>Digital Executive Planner</h3>Il framework minimalistico per il tracciamento scientifico del tempo e delle abitudini.<br><br><a href='https://tuo-link-gumroad.com'><button style='background:#F97316; color:white; width:100%; padding:0.8rem; border:none; font-weight:bold; border-radius:4px;'>📥 SCARICA IL PLANNER SU GUMROAD</button></a></div>", unsafe_allow_html=True)
-
-# Sezione: RisorsaZero
-elif target_brand == "RisorsaZero":
-    st.sidebar.markdown("<div style='color: #3B82F6; font-weight:800; font-size:1.2rem; text-align:center;'>RISORSAZERO</div>", unsafe_allow_html=True)
-    st.title("📁 Database Segreto di Internet")
-    st.markdown("### ⚡ AI Toolkit Privato (50 Tool Gratuiti Selezionati)")
-    df_toolkit = pd.DataFrame({"Categoria": ["Prompting", "Sintesi Vocale", "Video"], "Strumento": ["Gemini Advanced", "ElevenLabs", "CapCut Pro"], "Bypass": ["Free Tier", "10k Caratteri", "Export 4K"]})
-    st.dataframe(df_toolkit, use_container_width=True, hide_index=True)
-    st.download_button("📥 Esporta Archivio Completo (.csv)", df_toolkit.to_csv(index=False).encode('utf-8'), "risorsazero_toolkit.csv", "text/csv")
+        df_filtrato = df_tools
+        
+    st.dataframe(df_filtrato, use_container_width=True, hide_index=True)
+    
+    # Export del file pulito
+    csv_tools = df_tools.to_csv(index=False).encode('utf-8')
+    st.download_button(label="📥 Scarica Database Integrale (.csv)", data=csv_tools, file_name="risorsazero_toolkit.csv", mime="text/csv")
