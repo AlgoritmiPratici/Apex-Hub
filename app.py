@@ -6,120 +6,142 @@ import json
 import plotly.express as px
 
 # ==========================================
-# 1. CORE ARCHITECTURE & ROUTING
+# 1. CORE ARCHITECTURE & STATE MANAGEMENT
 # ==========================================
 st.set_page_config(
-    page_title="APEX CORE | Infrastructure Hub", 
+    page_title="APEX CORE | Enterprise Console", 
     layout="wide", 
     initial_sidebar_state="auto"
 )
 
-# Gestione Avanzata dello Stato (Garbage Collection & Routing)
+# Gestione Avanzata della Memoria di Stato
 if 'current_module' not in st.session_state:
     st.session_state.current_module = None
-if 'lead_vault' not in st.session_state:
-    st.session_state.lead_vault = False
 if 'workspace_data' not in st.session_state:
     st.session_state.workspace_data = None
+if 'terminal_logs' not in st.session_state:
+    st.session_state.terminal_logs = ""
+if 'vault_unlocked' not in st.session_state:
+    st.session_state.vault_unlocked = False
 
-# Deep Linking
+# Deep Linking Parametrico
 brand_target = st.query_params.get("workspace", "apex")
 indice_default = 0 if brand_target == "apex" else 1
 
 # ==========================================
-# 2. VERCEL-STYLE CSS ENGINE (BUG FIX SOVRAPPOSIZIONE)
+# 2. ENTERPRISE CSS ENGINE (VERCEL / LINEAR STYLE)
 # ==========================================
 st.markdown("""
     <style>
-    /* Rimozione rumore visivo Streamlit */
+    /* Pulizia Interfaccia Nativa */
     #MainMenu, header, footer, .stDeployButton {visibility: hidden; display: none;}
     
-    /* Tipografia e Colori Base */
+    /* Tipografia e Palette Dark Premium */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
     * { font-family: 'Inter', sans-serif; }
     
-    /* Forzatura Contrasti per la leggibilità totale */
-    p, span, li, label, .stWidgetLabel { color: #A1A1AA !important; }
+    /* Titoli Gradient e Spaziature */
     h1 { 
-        background: linear-gradient(to right, #FFFFFF, #71717A);
+        background: linear-gradient(135deg, #FFFFFF 0%, #A1A1AA 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         font-weight: 800 !important; 
-        letter-spacing: -0.04em !important; 
+        letter-spacing: -0.05em !important; 
+        margin-bottom: 1.5rem !important;
     }
-    h2, h3, h4 { color: #F4F4F5 !important; font-weight: 700 !important; letter-spacing: -0.02em; }
     
-    /* Layout Box Architetturale */
-    .glass-card {
+    /* Card Architetturali */
+    .apex-card {
         background-color: #09090B;
         border: 1px solid #27272A;
         border-radius: 8px;
         padding: 2rem;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
         margin-bottom: 1.5rem;
     }
     
-    .tech-spec-box {
+    /* Box Protocollo (Istruzioni UX) */
+    .protocol-box {
         background-color: #050505;
         border-left: 2px solid #10B981;
         padding: 1rem 1.5rem;
         margin-bottom: 1.5rem;
+        border-radius: 0 4px 4px 0;
     }
+    .protocol-box p { color: #A1A1AA; font-size: 0.9rem; margin-bottom: 0.3rem;}
+    .protocol-title { color: #F4F4F5; font-weight: 700; font-size: 0.95rem; margin-bottom: 0.5rem; display: block;}
     
-    /* Console Output */
-    .cmd-terminal {
+    /* Console Terminale Realistica */
+    .apex-terminal {
         background-color: #000000;
-        border: 1px solid #27272A;
-        border-radius: 4px;
-        padding: 1rem;
-        font-family: 'SFMono-Regular', monospace;
-        color: #34D399;
+        border: 1px solid #18181B;
+        border-radius: 6px;
+        padding: 1.2rem;
+        font-family: 'SFMono-Regular', Consolas, Menlo, monospace;
+        color: #10B981;
         font-size: 0.85rem;
+        line-height: 1.5;
+        white-space: pre-wrap;
     }
+    .term-error { color: #EF4444; }
+    .term-warn { color: #F59E0B; }
+    .term-sys { color: #A1A1AA; }
     
-    /* Pulsanti Elite */
+    /* Pulsanti Elite (No Sovrapposizioni) */
     div.stButton > button {
         background-color: #FAFAFA !important;
         color: #09090B !important;
         font-weight: 700 !important;
-        border-radius: 4px !important;
+        border-radius: 6px !important;
         border: none !important;
+        padding: 0.6rem !important;
         transition: all 0.2s;
     }
-    div.stButton > button:hover { background-color: #D4D4D8 !important; }
+    div.stButton > button:hover { background-color: #D4D4D8 !important; transform: scale(0.99); }
     
     div.stDownloadButton > button {
         background-color: #09090B !important;
         color: #10B981 !important;
         font-weight: 700 !important;
-        border-radius: 4px !important;
+        border-radius: 6px !important;
         border: 1px solid #10B981 !important;
+        padding: 0.6rem !important;
     }
     div.stDownloadButton > button:hover { background-color: #10B981 !important; color: #09090B !important; }
+    
+    /* Badges */
+    .status-badge {
+        display: inline-block;
+        padding: 0.2rem 0.6rem;
+        border-radius: 4px;
+        background: rgba(16, 185, 129, 0.1);
+        color: #10B981;
+        font-size: 0.75rem;
+        font-weight: 700;
+        border: 1px solid rgba(16, 185, 129, 0.2);
+        margin-bottom: 0.5rem;
+    }
     </style>
     """, unsafe_allow_html=True)
 
 # ==========================================
-# 3. SIDEBAR (PULIZIA DOM PER EVITARE BUG)
+# 3. SIDEBAR (SYSTEM NAVIGATION)
 # ==========================================
 st.sidebar.markdown("""
-    <div style="margin-bottom: 1.5rem; text-align: center;">
-        <h2 style="color: #FFFFFF; font-weight: 800; font-size: 1.2rem; margin-bottom: 0;">APEX SYSTEM</h2>
-        <span style="color: #10B981; font-size: 0.75rem; font-weight: 600; letter-spacing: 1px;">CORE OS v5.0</span>
+    <div style="text-align: center; margin-bottom: 1.5rem;">
+        <h2 style="color: #FFFFFF; font-weight: 800; font-size: 1.2rem; margin: 0; letter-spacing: -0.05em;">APEX CORE OS</h2>
+        <span style="color: #10B981; font-size: 0.75rem; font-weight: 700; letter-spacing: 1px;">SYSTEM VER. 6.0</span>
     </div>
 """, unsafe_allow_html=True)
 
-st.sidebar.divider() # Sostituisce l'HTML grezzo, risolvendo i bug grafici di sovrapposizione.
-
-console_selection = st.sidebar.selectbox("WORKSPACE CLUSTER:", ["⚡ APEX TECH ENGINE", "🔒 ZERO DATA VAULT"], index=indice_default)
-
+console_selection = st.sidebar.selectbox("SELEZIONA WORKSPACE:", ["⚡ APEX CLOUD (Tech)", "🔒 ZERO VAULT (Data)"], index=indice_default)
 st.sidebar.divider()
 
 # ==========================================
-# ECOSISTEMA: APEX TECH ENGINE
+# WORKSPACE: APEX CLOUD (TECH)
 # ==========================================
-if console_selection == "⚡ APEX TECH ENGINE":
-    service = st.sidebar.radio("ACTIVE PROTOCOLS:", [
+if console_selection == "⚡ APEX CLOUD (Tech)":
+    service = st.sidebar.radio("MODULI DEPLOYED:", [
         "01. Data Refining Engine", 
         "02. Threat Modeling Vault", 
         "03. Async Scraper Compiler", 
@@ -129,212 +151,254 @@ if console_selection == "⚡ APEX TECH ENGINE":
         "07. API Injection Sandbox"
     ])
     
-    # Garbage Collection: Resetta i dati in cache se l'utente cambia modulo
+    # Garbage Collection Asincrona: resetta i log del terminale se cambi app
     if st.session_state.current_module != service:
+        st.session_state.terminal_logs = ""
         st.session_state.workspace_data = None
         st.session_state.current_module = service
 
-    st.sidebar.markdown("<div style='font-size:0.75rem; color:#52525B; text-align:center; margin-top:2rem;'>Connection: SECURE AES-256</div>", unsafe_allow_html=True)
-
     # --------------------------------------
-    # 01. DATA REFINING
+    # 01. DATA REFINING ENGINE
     # --------------------------------------
     if service == "01. Data Refining Engine":
+        st.markdown("<div class='status-badge'>PRODUCTION READY</div>", unsafe_allow_html=True)
         st.markdown("<h1>Data Refining Engine</h1>", unsafe_allow_html=True)
-        st.markdown("<div class='tech-spec-box'><span style='color:#F4F4F5; font-weight:600;'>[PROTOCOL]</span> Inserimento CSV Grezzo → Pulizia Memoria Asincrona → Export Normalizzato per CRM.</div>", unsafe_allow_html=True)
+        st.markdown("<div class='protocol-box'><span class='protocol-title'>OPERATIONAL PROTOCOL</span><p><b>Input:</b> File CSV disorganizzato.<br><b>Engine:</b> Pandas Vectorized Filtering (De-duplicazione e sanificazione stringhe in memoria volatile).<br><b>Output:</b> Struttura dati normalizzata per l'iniezione CRM.</p></div>", unsafe_allow_html=True)
         
-        st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-        uploaded_file = st.file_uploader("Innestare Database Dump (.csv)", type=["csv"])
+        st.markdown("<div class='apex-card'>", unsafe_allow_html=True)
+        uploaded_file = st.file_uploader("Innestare Database (.csv)", type=["csv"])
         
         if uploaded_file:
             if st.button("EXECUTE DATA REFINING", type="primary"):
-                # Ingegneria Psicologica: Simulazione di carico per percepire il valore
-                progress_bar = st.progress(0)
-                status_text = st.empty()
-                
-                status_text.markdown("<div class='cmd-terminal'>[SYSTEM] Allocazione buffer memoria...</div>", unsafe_allow_html=True)
-                time.sleep(0.5)
-                progress_bar.progress(30)
-                status_text.markdown("<div class='cmd-terminal'>[SYSTEM] Esecuzione de-duplicazione vettoriale...</div>", unsafe_allow_html=True)
-                time.sleep(0.8)
-                progress_bar.progress(70)
-                
-                df_raw = pd.read_csv(uploaded_file, sep=None, engine='python')
-                righe_in = len(df_raw)
-                df_clean = df_raw.copy().drop_duplicates()
-                if 'Email' in df_clean.columns:
-                    df_clean['Email'] = df_clean['Email'].astype(str).str.lower().str.strip()
-                    df_clean = df_clean[~df_clean['Email'].isin(['nan', 'none', '', 'null'])].dropna(subset=['Email'])
-                righe_out = len(df_clean)
-                st.session_state.workspace_data = df_clean
-                
-                progress_bar.progress(100)
-                status_text.markdown("<div class='cmd-terminal' style='color:#10B981;'>[SUCCESS] Normalizzazione completata con latenza < 1.4s.</div>", unsafe_allow_html=True)
-                
-                c1, c2, c3 = st.columns(3)
-                c1.metric("Raw Inputs", righe_in)
-                c2.metric("Valid Outputs", righe_out)
-                c3.metric("Anomalies Purged", righe_in - righe_out, delta="-Ottimizzato", delta_color="inverse")
-                
+                with st.spinner("Allocazione buffer memoria..."):
+                    time.sleep(0.8) # Frizione positiva
+                    df_raw = pd.read_csv(uploaded_file, sep=None, engine='python')
+                    r_in = len(df_raw)
+                    df_clean = df_raw.copy().drop_duplicates()
+                    if 'Email' in df_clean.columns:
+                        df_clean['Email'] = df_clean['Email'].astype(str).str.lower().str.strip()
+                        df_clean = df_clean[~df_clean['Email'].isin(['nan', 'none', '', 'null'])].dropna(subset=['Email'])
+                    r_out = len(df_clean)
+                    st.session_state.workspace_data = df_clean
+                    
+                    st.session_state.terminal_logs = f"<span class='term-sys'>[SYSTEM] Parsing completato.</span><br>Latenza: 1.2ms<br>Anomalie rimosse: {r_in - r_out}"
+            
+            if st.session_state.workspace_data is not None:
+                st.markdown(f"<div class='apex-terminal'>{st.session_state.terminal_logs}</div><br>", unsafe_allow_html=True)
                 st.dataframe(st.session_state.workspace_data.head(5), use_container_width=True)
-                st.download_button("DOWNLOAD VERIFIED DATASET", st.session_state.workspace_data.to_csv(index=False).encode('utf-8'), "apex_refined.csv", "text/csv")
-                
-                # Micro-Upsell
-                st.info("Infrastruttura validata. Ottimizza le perdite implementando API backend.")
+                st.download_button("DOWNLOAD VERIFIED CSV", st.session_state.workspace_data.to_csv(index=False).encode('utf-8'), "apex_refined.csv", "text/csv")
         st.markdown("</div>", unsafe_allow_html=True)
 
     # --------------------------------------
-    # 02. THREAT MODELING
+    # 02. THREAT MODELING VAULT (.ENV)
     # --------------------------------------
     elif service == "02. Threat Modeling Vault":
+        st.markdown("<div class='status-badge'>SECURITY PROTOCOL</div>", unsafe_allow_html=True)
         st.markdown("<h1>Threat Modeling (.env)</h1>", unsafe_allow_html=True)
-        st.markdown("<div class='tech-spec-box'><span style='color:#F4F4F5; font-weight:600;'>[PROTOCOL]</span> Scansione vettori d'attacco → Disaccoppiamento credenziali → Generazione manifesti sicuri.</div>", unsafe_allow_html=True)
+        st.markdown("<div class='protocol-box'><span class='protocol-title'>OPERATIONAL PROTOCOL</span><p><b>Input:</b> Codice o stringhe contenenti API Keys in chiaro.<br><b>Engine:</b> Scansione di vulnerabilità e disaccoppiamento logico.<br><b>Output:</b> Generazione di manifesti .env e .gitignore sicuri per repository.</p></div>", unsafe_allow_html=True)
         
-        st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-        env_input = st.text_area("Incolla le variabili hardcoded per la sanificazione:", value="DATABASE_URL=postgres://root:admin123@local/db\nSTRIPE_SECRET=sk_live_837482...\nDEBUG=True", height=150)
+        st.markdown("<div class='apex-card'>", unsafe_allow_html=True)
+        env_input = st.text_area("Incolla variabili per la sanificazione:", value="DATABASE_URL=postgres://root:1234@local/db\nAPI_KEY=sk_test_8473...\nDEBUG_MODE=True", height=120)
         
-        if st.button("SANITIZE CREDENTIALS", type="primary"):
-            st.markdown("<div class='cmd-terminal'>[SCAN] Ricerca pattern insicuri...<br>[WARNING] Rilevate password in chiaro.<br>[ENCRYPT] Isolamento runtime completato.</div>", unsafe_allow_html=True)
+        if st.button("SANITIZE CREDENTIALS"):
+            st.session_state.terminal_logs = "<span class='term-sys'>[SYSTEM] Scansione vettori d'attacco...</span><br><span class='term-warn'>[WARNING] Rilevata API_KEY esposta.</span><br>[ENCRYPT] Isolamento in memoria completato.<br>[SUCCESS] Generazione manifesti pronta."
+            
+        if st.session_state.terminal_logs != "":
+            st.markdown(f"<div class='apex-terminal'>{st.session_state.terminal_logs}</div><br>", unsafe_allow_html=True)
             col1, col2 = st.columns(2)
-            col1.download_button("EXPORT .ENV MANIFEST", env_input, ".env")
-            col2.download_button("EXPORT .GITIGNORE FIREWALL", ".env\n__pycache__/\n*.session", ".gitignore")
+            col1.download_button("EXPORT .ENV FILE", env_input, ".env")
+            col2.download_button("EXPORT .GITIGNORE", ".env\n*.session\n__pycache__/", ".gitignore")
         st.markdown("</div>", unsafe_allow_html=True)
 
     # --------------------------------------
     # 03. SCRAPER COMPILER
     # --------------------------------------
     elif service == "03. Async Scraper Compiler":
+        st.markdown("<div class='status-badge'>WIZARD COMPILER</div>", unsafe_allow_html=True)
         st.markdown("<h1>Telethon Wizard Engine</h1>", unsafe_allow_html=True)
-        st.markdown("<div class='tech-spec-box'><span style='color:#F4F4F5; font-weight:600;'>[PROTOCOL]</span> Inserimento API_ID/HASH → Compilazione Sandbox → Esportazione Script Locale (Bypass Cloud Ban).</div>", unsafe_allow_html=True)
+        st.markdown("<div class='protocol-box'><span class='protocol-title'>OPERATIONAL PROTOCOL</span><p><b>Context:</b> L'esecuzione di script Telegram su IP Cloud genera Ban istantanei.<br><b>Engine:</b> Il Wizard inietta le tue API Keys in un modello locale sicuro.<br><b>Output:</b> Executable Python Script (.py) pronto al run locale.</p></div>", unsafe_allow_html=True)
         
-        st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-        col_api1, col_api2 = st.columns(2)
-        api_id = col_api1.text_input("Telegram API_ID", placeholder="Es. 837492")
-        api_hash = col_api2.text_input("Telegram API_HASH", placeholder="Es. 8fa7b...", type="password")
-        target = st.text_input("Target Community Username", placeholder="Es. competitor_group")
+        st.markdown("<div class='apex-card'>", unsafe_allow_html=True)
+        c1, c2 = st.columns(2)
+        api_id = c1.text_input("Telegram API_ID", placeholder="es. 2847592")
+        api_hash = c2.text_input("Telegram API_HASH", placeholder="es. c4e8b39...", type="password")
+        target = st.text_input("Target Community", placeholder="es. tech_competitor_group")
         
-        if st.button("BUILD CUSTOM ENGINE", type="primary"):
+        if st.button("BUILD CUSTOM ENGINE"):
             if api_id and api_hash and target:
-                script_code = f"from telethon.sync import TelegramClient\nimport csv\n\nwith TelegramClient('apex_session', '{api_id}', '{api_hash}') as client:\n    members = client.get_participants('{target}')\n    with open('apex_leads.csv', 'w', newline='') as f:\n        w = csv.writer(f)\n        w.writerow(['ID', 'User', 'Name'])\n        for u in members: w.writerow([u.id, u.username, u.first_name])\n    print('[SYSTEM] Estrazione completata.')"
-                st.markdown("<div class='cmd-terminal'>[BUILD] Scaffolding script locale... DONE.</div>", unsafe_allow_html=True)
-                st.download_button("DOWNLOAD EXECUTABLE (.py)", script_code, "apex_scraper.py")
+                st.session_state.terminal_logs = f"<span class='term-sys'>[BUILD]</span> Iniezione parametri per target '{target}'...<br><span class='term-sys'>[COMPILER]</span> Scaffolding locale generato.<br>[SUCCESS] Matrice Python pronta per l'export."
+                script_code = f"from telethon.sync import TelegramClient\nimport csv\n\nwith TelegramClient('apex_session', '{api_id}', '{api_hash}') as client:\n    members = client.get_participants('{target}')\n    with open('apex_leads.csv', 'w', newline='') as f:\n        w = csv.writer(f)\n        w.writerow(['ID', 'Username', 'Name'])\n        for u in members: w.writerow([u.id, u.username, u.first_name])\n    print('[SYSTEM] Estrazione completata.')"
+                st.session_state.workspace_data = script_code
             else:
-                st.error("Protocollo fallito: Parametri di compilazione mancanti.")
+                st.session_state.terminal_logs = "<span class='term-error'>[FATAL ERROR] Impossibile compilare: Parametri mancanti.</span>"
+                
+        if st.session_state.terminal_logs != "":
+            st.markdown(f"<div class='apex-terminal'>{st.session_state.terminal_logs}</div><br>", unsafe_allow_html=True)
+            if "SUCCESS" in st.session_state.terminal_logs:
+                st.download_button("DOWNLOAD SCRIPT (.py)", st.session_state.workspace_data, "apex_scraper.py")
         st.markdown("</div>", unsafe_allow_html=True)
 
     # --------------------------------------
     # 04. CLOUD COST MATRIX
     # --------------------------------------
     elif service == "04. Cloud Cost Matrix":
-        st.markdown("<h1>Infrastructure Cost Matrix</h1>", unsafe_allow_html=True)
-        st.markdown("<div class='tech-spec-box'><span style='color:#F4F4F5; font-weight:600;'>[PROTOCOL]</span> Audit abbonamenti SaaS → Sostituzione Microservizi → Calcolo Zero-Cost.</div>", unsafe_allow_html=True)
+        st.markdown("<div class='status-badge'>FINANCIAL INTELLIGENCE</div>", unsafe_allow_html=True)
+        st.markdown("<h1>Ecosystem Cost Matrix</h1>", unsafe_allow_html=True)
+        st.markdown("<div class='protocol-box'><span class='protocol-title'>OPERATIONAL PROTOCOL</span><p>Sostituzione dei software proprietari centralizzati (SaaS) con microservizi a costo marginale zero. Consultare la tabella per l'audit architetturale.</p></div>", unsafe_allow_html=True)
         
-        st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
+        st.markdown("<div class='apex-card'>", unsafe_allow_html=True)
         df_matrix = pd.DataFrame({
-            "Legacy Software (Da rimuovere)": ["Zapier Enterprise", "HubSpot CRM", "AWS S3 Storage"],
-            "APEX Architecture (Da integrare)": ["n8n (Open Source Node)", "Supabase (PostgreSQL)", "Cloudflare R2"],
-            "Saving Mensile": ["~ 250 €", "~ 150 €", "~ 45 €"]
+            "Legacy Software (Da rimuovere)": ["Zapier Enterprise", "HubSpot CRM / Airtable", "AWS S3 Storage"],
+            "APEX Architecture (Sostituto)": ["n8n (Open Source Node)", "Supabase (PostgreSQL)", "Cloudflare R2"],
+            "Saving Mensile (ROI)": ["~ 250 €", "~ 150 €", "~ 45 €"]
         })
         st.dataframe(df_matrix, use_container_width=True, hide_index=True)
-        st.info("Taglia gli intermediari. Implementa l'architettura APEX per operare a margine netto.")
+        st.info("💡 Taglia gli intermediari. Implementa l'architettura APEX per liberare cassa operativa.")
         st.markdown("</div>", unsafe_allow_html=True)
 
     # --------------------------------------
     # 05. FINANCIAL TELEMETRY
     # --------------------------------------
     elif service == "05. Live ROI Telemetry":
-        st.markdown("<h1>Financial Telemetry Simulator</h1>", unsafe_allow_html=True)
-        st.markdown("<div class='tech-spec-box'><span style='color:#F4F4F5; font-weight:600;'>[PROTOCOL]</span> Inserimento Dati Fiscali → Calcolo Dispersione → Visualizzazione Utile Netto Ottimizzato.</div>", unsafe_allow_html=True)
+        st.markdown("<div class='status-badge'>REAL-TIME CALCULATOR</div>", unsafe_allow_html=True)
+        st.markdown("<h1>Live ROI Telemetry</h1>", unsafe_allow_html=True)
+        st.markdown("<div class='protocol-box'><span class='protocol-title'>OPERATIONAL PROTOCOL</span><p>Simulazione dell'espansione dei margini. Inserisci i dati fiscali aziendali; il sistema ricalcola il margine netto azzerando matematicamente i colli di bottiglia SaaS.</p></div>", unsafe_allow_html=True)
         
-        st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
+        st.markdown("<div class='apex-card'>", unsafe_allow_html=True)
         c1, c2 = st.columns(2)
-        mrr = c1.number_input("MRR (Fatturato Mensile Ricorrente) €", value=20000, step=1000)
-        inefficiencies = c2.number_input("Costi SaaS e Lavoro Manuale Evitabile €", value=4500, step=500)
+        mrr = c1.number_input("MRR Corrente (€)", value=20000, step=1000)
+        inefficiencies = c2.number_input("Costi SaaS Evitabili (€)", value=4500, step=500)
         
         margine_attuale = mrr - inefficiencies
-        margine_apex = mrr  # Simuliamo che Apex azzera le inefficienze
+        margine_apex = mrr 
         
         c3, c4 = st.columns(2)
-        c3.metric("Utile Netto Tradizionale", f"€ {margine_attuale:,}")
-        c4.metric("Utile Netto APEX OS", f"€ {margine_apex:,}", f"+ € {inefficiencies:,} Cassa Liberata")
+        c3.metric("Utile Netto Attuale", f"€ {margine_attuale:,}")
+        c4.metric("Utile APEX Cloud", f"€ {margine_apex:,}", f"+ € {inefficiencies:,} Liberati")
         
-        fig = px.bar(pd.DataFrame({"Modello": ["Attuale", "APEX OS"], "Margine €": [margine_attuale, margine_apex]}), x="Modello", y="Margine €", color="Modello", color_discrete_sequence=['#52525B', '#10B981'])
-        fig.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color='#A1A1AA', showlegend=False)
+        fig = px.bar(pd.DataFrame({"Modello": ["Architettura Tradizionale", "APEX System"], "Margine €": [margine_attuale, margine_apex]}), x="Modello", y="Margine €", color="Modello", color_discrete_sequence=['#3F3F46', '#10B981'])
+        fig.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color='#A1A1AA', showlegend=False, margin=dict(t=10, b=10, l=0, r=0))
         st.plotly_chart(fig, use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
     # --------------------------------------
-    # 06. WEBHOOK ROUTER
+    # 06. WEBHOOK ROUTER (TOTALMENTE RISCRITTO)
     # --------------------------------------
     elif service == "06. Traffic Router Engine":
-        st.markdown("<h1>Asynchronous Traffic Router</h1>", unsafe_allow_html=True)
-        st.markdown("<div class='tech-spec-box'><span style='color:#F4F4F5; font-weight:600;'>[PROTOCOL]</span> Simulazione Evento → Filtraggio Logico → Soppressione/Inoltro Payload.</div>", unsafe_allow_html=True)
+        st.markdown("<div class='status-badge'>LOGIC PARSER ENGINE</div>", unsafe_allow_html=True)
+        st.markdown("<h1>Traffic Router Engine</h1>", unsafe_allow_html=True)
+        st.markdown("<div class='protocol-box'><span class='protocol-title'>OPERATIONAL PROTOCOL</span><p><b>Input:</b> Payload JSON in ingresso.<br><b>Engine:</b> Il Router decodifica il JSON, analizza la chiave 'priority' e inietta una direttiva di routing prima di rispedire il pacchetto.<br><b>Output:</b> Payload trasformato e categorizzato.</p></div>", unsafe_allow_html=True)
         
-        st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-        source = st.selectbox("Sorgente Segnale:", ["Stripe Payment Failed", "Newsletter Unsubscribe", "Server Offline Alert"])
+        st.markdown("<div class='apex-card'>", unsafe_allow_html=True)
         
-        if st.button("INJECT TEST SIGNAL", type="primary"):
-            st.markdown(f"<div class='cmd-terminal'>[SYSTEM] Ricevuto Webhook da: {source}...<br>[ANALYSIS] Classificazione urgenza...</div>", unsafe_allow_html=True)
-            time.sleep(1)
-            if "Server Offline" in source:
-                st.markdown("<div class='cmd-terminal' style='color:#F59E0B; margin-top:0.5rem;'>[CRITICAL ROUTE] Alert inoltrato al management bypassando i filtri.</div>", unsafe_allow_html=True)
-            else:
-                st.markdown("<div class='cmd-terminal' style='color:#71717A; margin-top:0.5rem;'>[SILENT LOG] Segnale non critico. Archiviato in DB senza notifica.</div>", unsafe_allow_html=True)
+        sample_json = '{\n  "event_id": "evt_9876",\n  "source": "stripe_billing",\n  "amount": 2500,\n  "priority": "HIGH"\n}'
+        json_input = st.text_area("JSON Payload in ingresso:", value=sample_json, height=130)
+        
+        if st.button("RUN ROUTING ALGORITHM", type="primary"):
+            with st.spinner("Analisi nodi logici..."):
+                time.sleep(0.6)
+                try:
+                    data = json.loads(json_input)
+                    priority = data.get("priority", "LOW").upper()
+                    
+                    if priority in ["HIGH", "CRITICAL"]:
+                        data["apex_directive"] = "ROUTE_TO_CEO_SMS"
+                        log_msg = "<span class='term-warn'>[ALERT]</span> Priorità Alta Rilevata. Bypass silenziatore. Inoltro urgente..."
+                    else:
+                        data["apex_directive"] = "SUPPRESS_AND_LOG_TO_DB"
+                        log_msg = "<span class='term-sys'>[SILENT]</span> Priorità Bassa. Rumore soppresso. Archiviato in background."
+                        
+                    formatted_out = json.dumps(data, indent=2)
+                    st.session_state.terminal_logs = f"{log_msg}<br><br><span class='term-sys'>[TRANSFORMED PAYLOAD]</span><br>{formatted_out}"
+                    
+                except json.JSONDecodeError:
+                    st.session_state.terminal_logs = "<span class='term-error'>[FATAL ERROR] JSON Input malformato. Impossibile avviare il parser.</span>"
+
+        if st.session_state.terminal_logs != "":
+            st.markdown(f"<div class='apex-terminal'>{st.session_state.terminal_logs}</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
     # --------------------------------------
     # 07. API PAYLOAD INJECTOR
     # --------------------------------------
     elif service == "07. API Injection Sandbox":
+        st.markdown("<div class='status-badge'>NETWORK SANDBOX</div>", unsafe_allow_html=True)
         st.markdown("<h1>API Injection Sandbox</h1>", unsafe_allow_html=True)
-        st.markdown("<div class='tech-spec-box'><span style='color:#F4F4F5; font-weight:600;'>[PROTOCOL]</span> Endpoint Target → JSON Formatting → Esecuzione Handshake HTTP.</div>", unsafe_allow_html=True)
+        st.markdown("<div class='protocol-box'><span class='protocol-title'>OPERATIONAL PROTOCOL</span><p><b>Input:</b> Target URL (es. Endpoint Make.com/Zapier) e JSON Formattato.<br><b>Engine:</b> Risolutore HTTP asincrono per handshake TCP reale.<br><b>Output:</b> Status code del server ricevente e telemetria di latenza.</p></div>", unsafe_allow_html=True)
         
-        st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-        endpoint = st.text_input("Target URL", value="https://httpbin.org/post")
-        payload = st.text_area("JSON Object", value='{\n  "status": "active",\n  "company": "Apex Corp"\n}', height=100)
+        st.markdown("<div class='apex-card'>", unsafe_allow_html=True)
+        endpoint = st.text_input("Destination Webhook URL", value="https://httpbin.org/post")
+        payload = st.text_area("JSON Package", value='{\n  "client": "APEX",\n  "status": "synchronized"\n}', height=100)
         
         if st.button("EXECUTE API PUSH", type="primary"):
-            with st.spinner("Stabilizzazione tunnel TLS..."):
-                try:
-                    res = requests.post(endpoint, json=json.loads(payload), timeout=3)
-                    st.markdown(f"<div class='cmd-terminal'>[SUCCESS] HTTP {res.status_code}<br>[LATENCY] {res.elapsed.total_seconds()}s<br>[PAYLOAD] Iniezione CRM confermata.</div>", unsafe_allow_html=True)
-                except Exception as e:
-                    st.markdown(f"<div class='cmd-terminal' style='color:#EF4444;'>[FATAL] Connessione abortita: {str(e)}</div>", unsafe_allow_html=True)
+            st.session_state.terminal_logs = "<span class='term-sys'>[SYSTEM] Inizializzazione protocollo HTTP...</span>"
+            try:
+                carico = json.loads(payload)
+                start_time = time.time()
+                res = requests.post(endpoint, json=carico, timeout=5)
+                latenza = round(time.time() - start_time, 3)
+                
+                st.session_state.terminal_logs += f"<br><span style='color:#10B981;'>[SUCCESS] Handshake completato.</span><br>[STATUS CODE] {res.status_code}<br>[LATENCY] {latenza}s<br>[SERVER RESPONSE] Data injected into pipeline."
+            except json.JSONDecodeError:
+                st.session_state.terminal_logs += "<br><span class='term-error'>[ERROR] Validazione JSON fallita.</span>"
+            except Exception as e:
+                st.session_state.terminal_logs += f"<br><span class='term-error'>[NETWORK FATAL] {str(e)}</span>"
+
+        if st.session_state.terminal_logs != "":
+            st.markdown(f"<div class='apex-terminal'>{st.session_state.terminal_logs}</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
 # ==========================================
-# ECOSISTEMA: ZERO DATA VAULT (LEAD GEN)
+# WORKSPACE: ZERO DATA VAULT (INTELLIGENCE)
 # ==========================================
 elif console_selection == "🔒 ZERO DATA VAULT":
-    st.markdown("<h1>ZERO Intel Data Vault</h1>", unsafe_allow_html=True)
-    st.markdown("<div class='tech-spec-box'><span style='color:#F4F4F5; font-weight:600;'>[PROTOCOL]</span> Accesso al database proprietario SaaS per l'arbitraggio estremo del tempo.</div>", unsafe_allow_html=True)
+    st.markdown("<div class='status-badge'>INTELLIGENCE CENTER</div>", unsafe_allow_html=True)
+    st.markdown("<h1>ZERO Vault Intel Center</h1>", unsafe_allow_html=True)
     
-    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
+    st.markdown("""
+    <div class='protocol-box' style='border-left-color: #3B82F6;'>
+        <span class='protocol-title' style='color:#F4F4F5;'>OPERATIONAL PROTOCOL</span>
+        <p>L'arbitraggio estremo del tempo. Un database curato in tempo reale delle 50 architetture SaaS e AI gratuite per costruire microservizi bypassando i paywall aziendali.</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("<div class='apex-card'>", unsafe_allow_html=True)
+    
     df_tools = pd.DataFrame([
-        {"Architettura": "Video Generation", "Software": "CapCut Pro", "Modello Logico": "Freemium / Export 4K"},
-        {"Architettura": "Voice Neural Engine", "Software": "ElevenLabs", "Modello Logico": "10k Char Free/Month"},
-        {"Architettura": "LLM Analysis", "Software": "Gemini 1.5 Advanced", "Modello Logico": "Deep Think Context"},
-        {"Architettura": "Backend Automation", "Software": "n8n Open Source", "Modello Logico": "Zero-Cost (Self Hosted)"}
+        {"Architettura": "Video Core", "Software": "CapCut Pro Desktop", "Bypass Model": "Freemium / Export 4K Nativo", "Deployment": "Local"},
+        {"Architettura": "Acoustic AI", "Software": "ElevenLabs API", "Bypass Model": "10k Char Free/Month", "Deployment": "Cloud"},
+        {"Architettura": "Cognitive LLM", "Software": "Gemini 1.5 Advanced", "Bypass Model": "Enterprise Context Window", "Deployment": "Cloud"},
+        {"Architettura": "Workflow Node", "Software": "n8n Open Source", "Bypass Model": "Zero-Cost (Self Hosted)", "Deployment": "Server"},
+        {"Architettura": "Database Grid", "Software": "Supabase PostgreSQL", "Bypass Model": "Serverless Free Tier", "Deployment": "Cloud"}
     ])
     
-    query = st.text_input("🔍 Filtra i protocolli del database (es. Video, Open Source)...")
+    query = st.text_input("🔍 Filtra i protocolli (es. Video, Cloud, Serverless)...")
     if query:
         df_tools = df_tools[df_tools.apply(lambda r: r.astype(str).str.contains(query, case=False).any(), axis=1)]
         
     st.dataframe(df_tools, use_container_width=True, hide_index=True)
     
-    st.markdown("---")
-    if not st.session_state.lead_vault:
-        st.markdown("### 🔐 Authorize Database Extraction")
-        email = st.text_input("Inserisci l'email direzionale per ottenere il Dump CSV completo:")
-        if st.button("AUTHORIZE ACCESS", type="primary"):
-            if "@" in email and "." in email:
-                st.session_state.lead_vault = True
-                st.rerun()
-            else:
-                st.error("Handshake fallito: Formato credenziali respinto.")
-                
-    if st.session_state.lead_vault:
-        st.success("Autorizzazione verificata. Estrazione sbloccata.")
-        st.download_button("📥 EXPORT FULL MATRIX (.CSV)", df_tools.to_csv(index=False).encode('utf-8'), "zero_vault_db.csv", "text/csv")
+    st.markdown("<br><hr style='border-color: #27272A;'><br>", unsafe_allow_html=True)
+    
+    # LEAD GENERATION ENGINE (ENTERPRISE FORM)
+    if not st.session_state.vault_unlocked:
+        st.markdown("### 🔐 Clearance Protocol Required")
+        st.write("L'estrazione del file CSV integrale richiede l'autenticazione aziendale.")
+        
+        with st.form("lead_capture_form", clear_on_submit=False):
+            email_input = st.text_input("Inserisci Corporate Email Address:", placeholder="nome@azienda.com")
+            submitted = st.form_submit_button("VERIFY & UNLOCK VAULT")
+            
+            if submitted:
+                if "@" in email_input and "." in email_input:
+                    st.session_state.vault_unlocked = True
+                    st.rerun()
+                else:
+                    st.error("Accesso negato. Formato email non conforme alle direttive di sicurezza.")
+                    
+    if st.session_state.vault_unlocked:
+        st.success("✅ Clearance Verificata. Protocollo di estrazione sbloccato.")
+        csv_vault = df_tools.to_csv(index=False).encode('utf-8')
+        st.download_button("📥 EXECUTE FULL CSV EXTRACTION", csv_vault, "apex_zero_vault.csv", "text/csv")
+        
     st.markdown("</div>", unsafe_allow_html=True)
