@@ -10,7 +10,7 @@ import plotly.express as px
 st.set_page_config(
     page_title="APEX Engineering Hub", 
     layout="wide", 
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="auto" # MODIFICA: Lascia decidere al dispositivo (Espansa su PC, contratta su Mobile)
 )
 
 # ==========================================
