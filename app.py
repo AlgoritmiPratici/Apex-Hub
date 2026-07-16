@@ -35,21 +35,10 @@ param_hub = st.query_params.get("workspace", "core")
 # ==========================================
 st.markdown("""
     <style>
-    /* FIX CHIRURGICO MENU LATERALE: Protezione assoluta della freccia "Collapsed Control" */
-    [data-testid="collapsedControl"] {
-        display: flex !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        z-index: 999999 !important;
-        pointer-events: auto !important;
-    }
-
-    /* Rende l'header invisibile MA mantiene le sue funzionalità base */
+    /* FIX DEFINITIVO MENU: Header trasparente. Nasconde la spazzatura a destra ma lascia intatta la freccia nativa a sinistra */
     header {background-color: transparent !important; box-shadow: none !important;}
-    
-    /* Nasconde solo la spazzatura nativa di Streamlit a destra (Deploy, menu setting, ecc.) */
     [data-testid="stHeaderActionElements"], .stDeployButton, footer, #MainMenu {
-        display: none !important; opacity: 0 !important; visibility: hidden !important; pointer-events: none !important;
+        display: none !important;
     }
     
     /* Distruzione Toolbar Tabelle (Risolve il bug "Keyboard double") */
@@ -283,43 +272,12 @@ elif selected_tool == "02. Sicurezza Ambientale (.env)":
         c2.download_button("📥 SCARICA FIREWALL .GITIGNORE", ".env\n__pycache__/\n*.session\n.DS_Store", ".gitignore")
     st.markdown("</div>", unsafe_allow_html=True)
 
-# --- 03. COMPILATORE TELEGRAM ---
-elif selected_tool == "03. Compilatore Telegram Scraper":
-    source_py = """from telethon.sync import TelegramClient\nimport csv\n\n# Architettura compilata dinamicamente in memoria\n# L'handshake richiede esecuzione locale per bypass OTP"""
-    render_page_header(
-        "DATA EXTRACTION", "Compilatore Telegram Scraper",
-        "Genera un software personalizzato per estrarre migliaia di lead dai gruppi concorrenti. L'estrazione in Cloud genera il Ban immediato da parte di Telegram: inserisci i tuoi parametri qui. Compileremo un software Python sicuro che potrai scaricare ed avviare in totale privacy direttamente dal tuo computer.",
-        "Generazione programmatica di script Python (libreria Telethon asincrona). L'eseguibile forza l'architettura client-side (localhost) per bypassare i filtri anti-bot IP cloud.",
-        source_py
-    )
-    
-    st.markdown("<div class='nexus-card'>", unsafe_allow_html=True)
-    c1, c2 = st.columns(2)
-    api_id = c1.text_input("Telegram API_ID", placeholder="es. 2847592")
-    api_hash = c2.text_input("Telegram API_HASH", placeholder="es. c4e8b...", type="password")
-    target = st.text_input("Username Community Competitor (senza @)", placeholder="es. marketing_italia")
-    
-    if st.button("COSTRUISCI SOFTWARE SORGENTE", type="primary"):
-        if api_id and api_hash and target:
-            script = f"""from telethon.sync import TelegramClient\nimport csv\n\nwith TelegramClient('nexus_session', '{api_id}', '{api_hash}') as c:\n  users = c.get_participants('{target}')\n  with open('leads_estrazione.csv', 'w', newline='', encoding='utf-8-sig') as f:\n    w=csv.writer(f)\n    w.writerow(['ID','Username','Name'])\n    for u in users: w.writerow([u.id, u.username, u.first_name])\n  print('[OK] Estrazione Dati Completata.')"""
-            st.session_state.m1_buffer = script
-            st.session_state.sys_logs = f"<span class='sys-log'>[{sys_time()}] [compiler@nexus] ~ Generazione variabili asincrone per il target '{target}'...</span><br><span style='color:#10B981'>[{sys_time()}] [SUCCESS] Software Python compilato in memoria. Binario pronto al download.</span>"
-        else:
-            st.session_state.sys_logs = f"<span class='err-log'>[{sys_time()}] [FATAL ERROR] Impossibile completare la compilazione. Parametri API mancanti nel costruttore.</span>"
-            st.session_state.m1_buffer = None
-            
-    if st.session_state.sys_logs != "":
-        st.markdown(f"<div class='cmd-window'>{st.session_state.sys_logs}</div><br>", unsafe_allow_html=True)
-        if st.session_state.m1_buffer:
-            st.download_button("📥 SCARICA SCRIPT PYTHON (.PY)", st.session_state.m1_buffer, "nexus_telegram_engine.py")
-    st.markdown("</div>", unsafe_allow_html=True)
-
-# --- 04. WEBHOOK ROUTER ---
-elif selected_tool == "04. Router Notifiche Asincrono":
+# --- 03. ROUTER NOTIFICHE ---
+elif selected_tool == "03. Router Notifiche Asincrono":
     source_py = """from fastapi import FastAPI, Request\napp = FastAPI()\n\n@app.post("/webhook")\nasync def route_traffic(req: Request):\n    payload = await req.json()\n    if payload.get("priority") == "CRITICAL":\n        return trigger_sms_alert()\n    return log_silently_to_db()"""
     render_page_header(
         "ALGORITHMS", "Router Notifiche Asincrono",
-        "Smetti di ricevere 100 email inutili al giorno. Questo filtro analizza i messaggi in entrata: se è un'emergenza (es. un cliente alto-spendente chiede aiuto) ti manda un SMS. Se è spam o routine, lo archivia in database senza disturbarti.",
+        "L'overload informativo paralizza il management. Incolla i dati di un evento di sistema (es. server down). L'algoritmo valuterà autonomamente l'urgenza. Se critico, inoltra un SMS al management. Se inutile, lo silenzia e lo archivia in database per non distrarre il team.",
         "Simulazione Endpoint REST in ricezione. Parsing asincrono del payload JSON. Switch logico interno sulla chiave 'priority' (Event-Driven Architecture) con tempo di esecuzione O(1).",
         source_py
     )
@@ -353,8 +311,8 @@ elif selected_tool == "04. Router Notifiche Asincrono":
         st.markdown(f"<div class='cmd-window'>{st.session_state.sys_logs}</div>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
-# --- 05. API INJECTOR ---
-elif selected_tool == "05. Integrazione API (Sandbox)":
+# --- 04. API INJECTOR ---
+elif selected_tool == "04. Integrazione API (Sandbox)":
     source_py = """import requests\nimport json\n\ndef inject_payload(url, data_dict):\n    headers = {'Content-Type': 'application/json'}\n    response = requests.post(url, json=data_dict, headers=headers, timeout=5)\n    return response.status_code, response.elapsed.total_seconds()"""
     render_page_header(
         "NETWORK OPS", "Integrazione API (Sandbox)",
@@ -389,7 +347,38 @@ elif selected_tool == "05. Integrazione API (Sandbox)":
         st.markdown(f"<div class='cmd-window'>{st.session_state.sys_logs}</div>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
-# --- 06. INTERACTIVE CLOUD AUDIT ---
+# --- 05. COMPILATORE TELEGRAM ---
+elif selected_tool == "05. Compilatore Telegram Scraper":
+    source_py = """from telethon.sync import TelegramClient\nimport csv\n\n# Architettura compilata dinamicamente in memoria\n# L'handshake richiede esecuzione locale per bypass OTP"""
+    render_page_header(
+        "DATA EXTRACTION", "Compilatore Telegram Scraper",
+        "Genera un software personalizzato per estrarre migliaia di lead dai gruppi concorrenti. Poiché estrarre dati tramite Cloud genera un Ban immediato dell'account Telegram, inserisci i tuoi parametri qui. Compileremo un software Python sicuro che potrai scaricare ed avviare direttamente dal tuo computer.",
+        "Generazione programmatica di script Python (libreria Telethon asincrona). L'eseguibile forza l'architettura client-side (localhost) per bypassare i filtri anti-bot IP cloud.",
+        source_py
+    )
+    
+    st.markdown("<div class='nexus-card'>", unsafe_allow_html=True)
+    c1, c2 = st.columns(2)
+    api_id = c1.text_input("Telegram API_ID", placeholder="es. 2847592")
+    api_hash = c2.text_input("Telegram API_HASH", placeholder="es. c4e8b...", type="password")
+    target = st.text_input("Username Community Competitor (senza @)", placeholder="es. marketing_italia")
+    
+    if st.button("COSTRUISCI SOFTWARE SORGENTE", type="primary"):
+        if api_id and api_hash and target:
+            script = f"""from telethon.sync import TelegramClient\nimport csv\n\nwith TelegramClient('nexus_session', '{api_id}', '{api_hash}') as c:\n  users = c.get_participants('{target}')\n  with open('leads_estrazione.csv', 'w', newline='', encoding='utf-8-sig') as f:\n    w=csv.writer(f)\n    w.writerow(['ID','Username','Name'])\n    for u in users: w.writerow([u.id, u.username, u.first_name])\n  print('[OK] Estrazione Dati Completata.')"""
+            st.session_state.m1_buffer = script
+            st.session_state.sys_logs = f"<span class='sys-log'>[{sys_time()}] [compiler@nexus] ~ Generazione variabili asincrone per il target '{target}'...</span><br><span style='color:#10B981'>[{sys_time()}] [SUCCESS] Software Python compilato in memoria. Binario pronto al download.</span>"
+        else:
+            st.session_state.sys_logs = f"<span class='err-log'>[{sys_time()}] [FATAL ERROR] Impossibile completare la compilazione. Parametri API mancanti nel costruttore.</span>"
+            st.session_state.m1_buffer = None
+            
+    if st.session_state.sys_logs != "":
+        st.markdown(f"<div class='cmd-window'>{st.session_state.sys_logs}</div><br>", unsafe_allow_html=True)
+        if st.session_state.m1_buffer:
+            st.download_button("📥 SCARICA SCRIPT PYTHON (.PY)", st.session_state.m1_buffer, "nexus_telegram_engine.py")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# --- 06. COST MATRIX ---
 elif selected_tool == "06. Interactive Cloud Audit":
     source_py = """# Algoritmo dinamico per l'abbattimento dell'OPEX
 def calculate_burn_rate(legacy_stack):
