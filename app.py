@@ -10,7 +10,7 @@ import plotly.graph_objects as go
 # ==========================================
 # 1. KERNEL & INFRASTRUCTURE STATE
 # ==========================================
-st.set_page_config(page_title="NEXUS Cloud | B2B Infrastructure", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="NEXUS Cloud | Enterprise Infrastructure", layout="wide", initial_sidebar_state="expanded")
 
 # Inizializzazione Blindata (Garbage Collection & Persistence)
 SYSTEM_STATES = {
@@ -35,10 +35,14 @@ param_hub = st.query_params.get("workspace", "core")
 # ==========================================
 st.markdown("""
     <style>
-    /* FIX MENU LATERALE: Header trasparente ma freccia visibile, nasconde solo bottoni a destra */
-    header {background-color: transparent !important;}
-    [data-testid="stHeaderActionElements"] {display: none !important;}
-    #MainMenu, footer, .stDeployButton {display: none !important;}
+    /* FIX DEFINITIVO MENU LATERALE (MOBILE/DESKTOP) */
+    /* Rende l'header invisibile MA mantiene i bottoni base (come la freccia del menu) */
+    header {background-color: transparent !important; box-shadow: none !important;}
+    
+    /* Nasconde solo la spazzatura nativa di Streamlit a destra (Deploy, menu setting, ecc.) */
+    [data-testid="stHeaderActionElements"], .stDeployButton, footer, #MainMenu {
+        display: none !important; opacity: 0 !important; visibility: hidden !important; pointer-events: none !important;
+    }
     
     /* Distruzione Toolbar Tabelle (Risolve il bug "Keyboard double") */
     [data-testid="stElementToolbar"], [data-testid="stToolbar"], button[title="View fullscreen"] {
@@ -127,6 +131,10 @@ st.markdown("""
         font-weight: 700; border: 1px solid rgba(255, 255, 255, 0.1); letter-spacing: 1px;
         text-transform: uppercase; margin-bottom: 15px;
     }
+    
+    /* Customizzazione estetica dei Checkbox per la Matrice Costi */
+    div[data-testid="stCheckbox"] label { cursor: pointer; }
+    div[data-testid="stCheckbox"] label p { color: #F4F4F5 !important; font-weight: 500; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -143,20 +151,18 @@ def render_page_header(badge, title, use_case, tech_spec, python_code=None):
         st.markdown(f"<div style='padding: 0.5rem 0;'><p style='color:#F4F4F5; font-size:1.05rem;'>{use_case}</p></div>", unsafe_allow_html=True)
     with tab2:
         st.markdown(f"<div style='background-color:#050505; border-left:3px solid #3B82F6; padding: 1rem; border-radius:0 6px 6px 0; margin-bottom:1rem;'><p style='font-family:monospace; font-size:0.85rem; margin:0;'>{tech_spec}</p></div>", unsafe_allow_html=True)
-        # Codice sorgente espandibile
         if python_code:
             with st.expander("👁️ VISUALIZZA SORGENTE ALGORITMO (Python)"):
                 st.code(python_code, language="python")
     st.markdown("<br>", unsafe_allow_html=True)
 
 def render_vault_header(badge, title, desc):
-    """Header minimale per il Vault."""
     st.markdown(f"<div class='status-badge'>{badge}</div>", unsafe_allow_html=True)
     st.markdown(f"<h1>{title}</h1>", unsafe_allow_html=True)
     st.markdown(f"<div style='padding: 0.5rem 0; margin-bottom: 1.5rem;'><p style='color:#F4F4F5; font-size:1.05rem;'>{desc}</p></div>", unsafe_allow_html=True)
 
 # ==========================================
-# 4. ROUTING TASSONOMICO (SIDEBAR)
+# 4. ROUTING TASSONOMICO (LA MATRICE MENU)
 # ==========================================
 st.sidebar.markdown("""
     <div style="text-align: center; margin-bottom: 2rem;">
@@ -198,14 +204,7 @@ if st.session_state.active_tool != selected_tool:
 
 # --- 01. CSV NORMALIZER ---
 if selected_tool == "01. Normalizzazione Dati (CSV)":
-    source_py = """import pandas as pd
-def clean_dataset(file_path):
-    df = pd.read_csv(file_path).drop_duplicates()
-    if 'email' in df.columns.str.lower():
-        email_col = [c for c in df.columns if c.lower() == 'email'][0]
-        df[email_col] = df[email_col].astype(str).str.lower().str.strip()
-        df = df.dropna(subset=[email_col])
-    return df"""
+    source_py = """import pandas as pd\n\ndef clean_dataset(file_path):\n    try:\n        df = pd.read_csv(file_path, sep=None, engine='python', encoding='utf-8')\n    except UnicodeDecodeError:\n        df = pd.read_csv(file_path, sep=None, engine='python', encoding='latin1')\n\n    df = df.drop_duplicates()\n    if 'email' in df.columns.str.lower():\n        email_col = [c for c in df.columns if c.lower() == 'email'][0]\n        df[email_col] = df[email_col].astype(str).str.lower().str.strip()\n        df = df.dropna(subset=[email_col])\n    return df"""
     
     render_page_header(
         "DATA PROCESSING", "Normalizzazione Dati (CSV)",
@@ -243,7 +242,7 @@ def clean_dataset(file_path):
                     st.session_state.m1_buffer = df_clean
                     st.session_state.sys_logs = f"<span class='sys-log'>[{sys_time()}] [root@nexus] ~ Data Parsing Eseguito. Latenza: 1.8ms.</span><br>{log_m}<br><br><span class='acc-log'>Record Iniziali: {r_in} | Record Validi: {r_out} | Anomalie Distrutte: {r_in - r_out}</span>"
                 except Exception as e:
-                    st.session_state.sys_logs = f"<span class='err-log'>[{sys_time()}] [FATAL] Impossibile elaborare il file. Formattazione non standard. Dettagli: {e}</span>"
+                    st.session_state.sys_logs = f"<span class='err-log'>[{sys_time()}] [FATAL] Impossibile elaborare il file. Formattazione non standard. Dettagli sistema: {e}</span>"
 
     if st.session_state.m1_buffer is not None:
         st.markdown(f"<div class='cmd-window'>{st.session_state.sys_logs}</div><br>", unsafe_allow_html=True)
@@ -277,7 +276,7 @@ elif selected_tool == "02. Sicurezza Ambientale (.env)":
 
 # --- 03. COMPILATORE TELEGRAM ---
 elif selected_tool == "03. Compilatore Telegram Scraper":
-    source_py = """from telethon.sync import TelegramClient\n# Architettura compilata dinamicamente in memoria\n# L'handshake richiede esecuzione locale per bypass OTP"""
+    source_py = """from telethon.sync import TelegramClient\nimport csv\n\n# Architettura compilata dinamicamente in memoria\n# L'handshake richiede esecuzione locale per bypass OTP"""
     render_page_header(
         "DATA EXTRACTION", "Compilatore Telegram Scraper",
         "Genera un software personalizzato per estrarre migliaia di lead dai gruppi concorrenti. L'estrazione in Cloud genera il Ban immediato da parte di Telegram: inserisci i tuoi parametri qui. Compileremo un software Python sicuro che potrai scaricare ed avviare in totale privacy direttamente dal tuo computer.",
@@ -295,7 +294,7 @@ elif selected_tool == "03. Compilatore Telegram Scraper":
         if api_id and api_hash and target:
             script = f"""from telethon.sync import TelegramClient\nimport csv\n\nwith TelegramClient('nexus_session', '{api_id}', '{api_hash}') as c:\n  users = c.get_participants('{target}')\n  with open('leads_estrazione.csv', 'w', newline='', encoding='utf-8-sig') as f:\n    w=csv.writer(f)\n    w.writerow(['ID','Username','Name'])\n    for u in users: w.writerow([u.id, u.username, u.first_name])\n  print('[OK] Estrazione Dati Completata.')"""
             st.session_state.m1_buffer = script
-            st.session_state.sys_logs = f"<span class='sys-log'>[{sys_time()}] [compiler@nexus] ~ Iniezione parametri per il target '{target}'...</span><br><span style='color:#10B981'>[{sys_time()}] [SUCCESS] Software Python compilato in memoria. Binario pronto al download.</span>"
+            st.session_state.sys_logs = f"<span class='sys-log'>[{sys_time()}] [compiler@nexus] ~ Generazione variabili asincrone per il target '{target}'...</span><br><span style='color:#10B981'>[{sys_time()}] [SUCCESS] Software Python compilato in memoria. Binario pronto al download.</span>"
         else:
             st.session_state.sys_logs = f"<span class='err-log'>[{sys_time()}] [FATAL ERROR] Impossibile completare la compilazione. Parametri API mancanti nel costruttore.</span>"
             st.session_state.m1_buffer = None
@@ -311,7 +310,7 @@ elif selected_tool == "04. Router Notifiche Asincrono":
     source_py = """from fastapi import FastAPI, Request\napp = FastAPI()\n\n@app.post("/webhook")\nasync def route_traffic(req: Request):\n    payload = await req.json()\n    if payload.get("priority") == "CRITICAL":\n        return trigger_sms_alert()\n    return log_silently_to_db()"""
     render_page_header(
         "ALGORITHMS", "Router Notifiche Asincrono",
-        "L'overload informativo paralizza il management. Incolla i dati di un evento di sistema: il nostro algoritmo valuterà autonomamente l'urgenza. Se critico, inoltra un SMS al management. Se inutile, lo silenzia e lo archivia in database per non distrarre il team.",
+        "L'overload informativo paralizza il management. Incolla i dati di un evento di sistema (es. server down). L'algoritmo valuterà autonomamente l'urgenza. Se critico, inoltra un SMS al management. Se inutile, lo silenzia e lo archivia in database per non distrarre il team.",
         "Simulazione Endpoint REST in ricezione. Parsing asincrono del payload JSON. Switch logico interno sulla chiave 'priority' (Event-Driven Architecture) con tempo di esecuzione O(1).",
         source_py
     )
@@ -390,61 +389,79 @@ def calculate_burn_rate(legacy_stack):
     return burn_rate, apex_cost"""
     render_page_header(
         "FINANCIAL AUDIT", "Interactive Cloud Audit",
-        "Le aziende bruciano decine di migliaia di euro ogni anno in abbonamenti software lenti e costosi. Esegui un Audit interattivo per la tua azienda: seleziona i software che stai pagando. Ti mostreremo istantaneamente quanti soldi stai perdendo e l'esatta alternativa gratuita (Open Source) per azzerare le spese.",
-        "Audit interattivo per il calcolo del TCO (Total Cost of Ownership). Sostituzione di servizi monolitici legacy con architetture distribuite Open Source e Cloud Serverless.",
+        "Le aziende italiane bruciano decine di migliaia di euro ogni anno in abbonamenti software (SaaS) monolitici e costosi. Esegui un Audit interattivo per la tua azienda: seleziona i software che stai pagando oggi. Ti mostreremo istantaneamente quanti soldi stai perdendo e l'esatta alternativa (Open Source o Serverless) per azzerare le spese mensili.",
+        "Audit interattivo per il calcolo del TCO (Total Cost of Ownership). Sostituzione di servizi monolitici legacy con architetture distribuite Open Source e Cloud Serverless ad alte prestazioni.",
         source_py
     )
     
     st.markdown("<div class='nexus-card'>", unsafe_allow_html=True)
-    st.markdown("<p style='color:#FAFAFA; font-weight:600; margin-bottom:1rem;'>Seleziona i servizi software (SaaS) attualmente in uso nella tua azienda:</p>", unsafe_allow_html=True)
+    st.markdown("<p style='color:#FAFAFA; font-weight:600; margin-bottom:1rem; font-size:1.1rem;'>Seleziona i servizi software (SaaS) attualmente in uso nella tua azienda:</p>", unsafe_allow_html=True)
     
-    # Layout Ingegnerizzato a due righe
+    # MATRICE ITALIANA: 12 Pilastri SaaS
     c1, c2, c3, c4 = st.columns(4)
     zapier = c1.checkbox("Zapier / Make")
     hubspot = c2.checkbox("HubSpot / Salesforce")
-    aws = c3.checkbox("AWS S3 / Google Cloud")
-    mail = c4.checkbox("Mailchimp / ActiveC.")
+    mail = c3.checkbox("Mailchimp / ActiveC.")
+    funnel = c4.checkbox("ClickFunnels / Kajabi")
     
     st.markdown("<br>", unsafe_allow_html=True)
-    
     c5, c6, c7, c8 = st.columns(4)
-    calendly = c5.checkbox("Calendly / Typeform")
-    zendesk = c6.checkbox("Zendesk / Intercom")
-    tableau = c7.checkbox("Tableau / PowerBI")
-    auth0 = c8.checkbox("Auth0 / Okta")
+    shopify = c5.checkbox("Shopify (Costi Add-on)")
+    manychat = c6.checkbox("ManyChat / Chatfuel")
+    calendly = c7.checkbox("Calendly / Doodle")
+    zendesk = c8.checkbox("Zendesk / Intercom")
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    c9, c10, c11, c12 = st.columns(4)
+    vimeo = c9.checkbox("Vimeo / Wistia")
+    airtable = c10.checkbox("Airtable / Monday")
+    typeform = c11.checkbox("Typeform")
+    aws = c12.checkbox("AWS S3 / Google Cloud")
     
     burn_rate = 0
     soluzioni = []
     
     if zapier: 
         burn_rate += 199
-        soluzioni.append("✅ Sostituisci Automazioni con **n8n (Self-Hosted Node)** a costo zero. Esecuzioni illimitate.")
+        soluzioni.append("✅ Sostituisci Automazioni con **n8n (Self-Hosted)** a costo zero. Esecuzioni illimitate.")
     if hubspot: 
         burn_rate += 150
         soluzioni.append("✅ Sostituisci il CRM con **Supabase (PostgreSQL Serverless)** a costo zero.")
-    if aws: 
-        burn_rate += 45
-        soluzioni.append("✅ Sostituisci AWS S3 Storage con **Cloudflare R2** (Zero costi per il traffico in uscita).")
     if mail: 
         burn_rate += 80
         soluzioni.append("✅ Sostituisci Email Marketing con **Mautic (Open Source) + AWS SES** a pochi centesimi.")
+    if funnel: 
+        burn_rate += 197
+        soluzioni.append("✅ Sostituisci ClickFunnels con **WordPress + Ghost (Headless CMS)** a costo zero.")
+    if shopify: 
+        burn_rate += 79
+        soluzioni.append("✅ Sostituisci gli abbonamenti eCommerce con **WooCommerce + Stripe**.")
+    if manychat: 
+        burn_rate += 45
+        soluzioni.append("✅ Sostituisci i Chatbot con **Typebot (Open Source)** a costo zero.")
     if calendly: 
-        burn_rate += 50
-        soluzioni.append("✅ Sostituisci Form & Meeting con **Cal.com / Tally (Self-Hosted)** a costo zero.")
+        burn_rate += 30
+        soluzioni.append("✅ Sostituisci Form & Meeting con **Cal.com (Self-Hosted)** a costo zero.")
     if zendesk: 
         burn_rate += 150
         soluzioni.append("✅ Sostituisci il Customer Care con **Chatwoot (Open Source)** a costo zero.")
-    if tableau: 
-        burn_rate += 100
-        soluzioni.append("✅ Sostituisci la Business Intelligence con **Metabase (Open Source)** a costo zero.")
-    if auth0: 
-        burn_rate += 80
-        soluzioni.append("✅ Sostituisci l'Autenticazione Utenti con **SuperTokens / Keycloak** a costo zero.")
+    if vimeo: 
+        burn_rate += 60
+        soluzioni.append("✅ Sostituisci l'Hosting Video con **Cloudflare Stream** a un decimo del costo.")
+    if airtable: 
+        burn_rate += 50
+        soluzioni.append("✅ Sostituisci i Database NoCode con **NocoDB (Open Source)** a costo zero.")
+    if typeform: 
+        burn_rate += 59
+        soluzioni.append("✅ Sostituisci la raccolta Lead con **Tally.so (Free Tier Illimitato)**.")
+    if aws: 
+        burn_rate += 45
+        soluzioni.append("✅ Sostituisci AWS S3 Storage con **Cloudflare R2** (Zero costi per il traffico in uscita/egress).")
         
     st.markdown("---")
     c_res1, c_res2 = st.columns(2)
-    c_res1.metric("Costo Architettura Tradizionale", f"€ {burn_rate} / mese")
-    c_res2.metric("Costo Architettura NEXUS", "€ 0 / mese", f"+ € {burn_rate} Risparmiati", delta_color="normal")
+    c_res1.metric("Burn Rate Mensile (Sprechi)", f"€ {burn_rate} / mese")
+    c_res2.metric("Costo Architettura NEXUS", "€ 0 / mese", f"+ € {burn_rate} Salvati al Mese", delta_color="normal")
     
     if burn_rate > 0:
         st.markdown("<br><p style='color:#FAFAFA; font-weight:700;'>PROTOCOLLO DI MIGRAZIONE CONSIGLIATO:</p>", unsafe_allow_html=True)
@@ -457,7 +474,7 @@ elif selected_tool == "07. Simulatore ROI Finanziario":
     source_py = """import plotly.graph_objects as go\n# Rendering vettoriale asincrono dei flussi di cassa\nfig = go.Figure(data=[\n    go.Bar(name='Legacy', x=['Model'], y=[mrr - opex]),\n    go.Bar(name='NEXUS', x=['Model'], y=[mrr])\n])"""
     render_page_header(
         "BUSINESS ANALYTICS", "Simulatore ROI Finanziario",
-        "Simulatore predittivo di marginalità in tempo reale. Inserisci il fatturato attuale e le spese software mensili fisse (OPEX). Il sistema calcolerà istantaneamente l'aumento dell'utile netto aziendale derivante dal taglio radicale degli abbonamenti.",
+        "Simulatore predittivo di marginalità in tempo reale. Inserisci il fatturato attuale e le spese software mensili fisse (OPEX) che intendi abbattere. Il sistema calcolerà istantaneamente l'aumento dell'utile netto aziendale derivante dal taglio radicale degli abbonamenti.",
         "Data Visualization tramite framework Plotly Express. Calcolo vettoriale real-time dell'abbattimento dell'Operational Expenditure (OPEX) e della dilatazione marginale.",
         source_py
     )
