@@ -35,8 +35,16 @@ param_hub = st.query_params.get("workspace", "core")
 # ==========================================
 st.markdown("""
     <style>
-    /* FIX DEFINITIVO MENU LATERALE (MOBILE/DESKTOP) */
-    /* Rende l'header invisibile MA mantiene i bottoni base (come la freccia del menu) */
+    /* FIX CHIRURGICO MENU LATERALE: Protezione assoluta della freccia "Collapsed Control" */
+    [data-testid="collapsedControl"] {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        z-index: 999999 !important;
+        pointer-events: auto !important;
+    }
+
+    /* Rende l'header invisibile MA mantiene le sue funzionalità base */
     header {background-color: transparent !important; box-shadow: none !important;}
     
     /* Nasconde solo la spazzatura nativa di Streamlit a destra (Deploy, menu setting, ecc.) */
@@ -117,7 +125,7 @@ st.markdown("""
     div[role="radiogroup"] > label p { color: #A1A1AA !important; font-weight: 500; margin: 0; font-size:0.9rem;}
     div[role="radiogroup"] > label[data-checked="true"] p { color: #10B981 !important; font-weight: 600;}
     
-    /* Stile Schede (Tabs) */
+    /* Stile Schede (Tabs Vercel/Stripe style) */
     div[data-baseweb="tab-list"] { background-color: transparent !important; border-bottom: 1px solid #27272A; margin-bottom: 1rem;}
     div[data-baseweb="tab"] { background-color: transparent !important; border-radius: 0 !important; padding-top: 0.5rem; padding-bottom: 0.5rem;}
     div[data-baseweb="tab"] p { color: #71717A !important; font-weight: 600; font-size: 0.95rem;}
@@ -157,6 +165,7 @@ def render_page_header(badge, title, use_case, tech_spec, python_code=None):
     st.markdown("<br>", unsafe_allow_html=True)
 
 def render_vault_header(badge, title, desc):
+    """Header minimale per il Vault."""
     st.markdown(f"<div class='status-badge'>{badge}</div>", unsafe_allow_html=True)
     st.markdown(f"<h1>{title}</h1>", unsafe_allow_html=True)
     st.markdown(f"<div style='padding: 0.5rem 0; margin-bottom: 1.5rem;'><p style='color:#F4F4F5; font-size:1.05rem;'>{desc}</p></div>", unsafe_allow_html=True)
@@ -186,7 +195,7 @@ default_idx = 0 if param_hub == "core" else 1
 selected_workspace = st.sidebar.selectbox("SELEZIONA WORKSPACE:", list(ECOSYSTEMS.keys()), index=default_idx)
 st.sidebar.markdown("<hr style='border-color:#1F2937; margin: 1rem 0;'>", unsafe_allow_html=True)
 
-# Generazione Gerarchica
+# Generazione Gerarchica Menu
 categories = ECOSYSTEMS[selected_workspace]
 st.sidebar.markdown("<p style='font-size: 0.75rem; font-weight: 700; color: #FFF; text-transform: uppercase; margin-bottom:0.2rem;'>Console di Comando</p>", unsafe_allow_html=True)
 selected_category = st.sidebar.selectbox("Filtra per Categoria:", list(categories.keys()), label_visibility="collapsed")
@@ -199,7 +208,7 @@ if st.session_state.active_tool != selected_tool:
     st.session_state.active_tool = selected_tool
 
 # ==========================================
-# 5. WORKSPACE: NEXUS CORE
+# 5. WORKSPACE: NEXUS CORE (ENGINEERING)
 # ==========================================
 
 # --- 01. CSV NORMALIZER ---
@@ -310,7 +319,7 @@ elif selected_tool == "04. Router Notifiche Asincrono":
     source_py = """from fastapi import FastAPI, Request\napp = FastAPI()\n\n@app.post("/webhook")\nasync def route_traffic(req: Request):\n    payload = await req.json()\n    if payload.get("priority") == "CRITICAL":\n        return trigger_sms_alert()\n    return log_silently_to_db()"""
     render_page_header(
         "ALGORITHMS", "Router Notifiche Asincrono",
-        "L'overload informativo paralizza il management. Incolla i dati di un evento di sistema (es. server down). L'algoritmo valuterà autonomamente l'urgenza. Se critico, inoltra un SMS al management. Se inutile, lo silenzia e lo archivia in database per non distrarre il team.",
+        "Smetti di ricevere 100 email inutili al giorno. Questo filtro analizza i messaggi in entrata: se è un'emergenza (es. un cliente alto-spendente chiede aiuto) ti manda un SMS. Se è spam o routine, lo archivia in database senza disturbarti.",
         "Simulazione Endpoint REST in ricezione. Parsing asincrono del payload JSON. Switch logico interno sulla chiave 'priority' (Event-Driven Architecture) con tempo di esecuzione O(1).",
         source_py
     )
@@ -332,7 +341,7 @@ elif selected_tool == "04. Router Notifiche Asincrono":
                     data["nexus_action"] = "SILENT_DB_LOG"
                     msg = f"<span class='sys-log'>[{sys_time()}] [SILENT] Priorità Bassa. Rumore soppresso e archiviato per audit futuro.</span>"
                 
-                # BUG FIX: Sanitizzazione del JSON per il rendering HTML
+                # Sanitizzazione del JSON per il rendering HTML
                 json_str = json.dumps(data, indent=2)
                 formatted_json = json_str.replace('\n', '<br>').replace('  ', '&nbsp;&nbsp;')
                 
@@ -367,7 +376,7 @@ elif selected_tool == "05. Integrazione API (Sandbox)":
             res = requests.post(url, json=p_json, timeout=5)
             lat = round(time.time() - t0, 3)
             
-            # BUG FIX: Sanitizzazione testo risposta del server per HTML
+            # Sanitizzazione testo risposta del server per HTML
             safe_res = res.text[:250].replace('\n', '<br>').replace('  ', '&nbsp;&nbsp;')
             
             st.session_state.sys_logs += f"<br><span style='color:#10B981'>[{sys_time()}] [SUCCESS] Transazione validata. Connessione intatta.</span><br>HTTP CODE: {res.status_code}<br>LATENZA TCP: {lat}s<br><br><span class='sys-log'>[RAW SERVER RESPONSE]</span><br>{safe_res}..."
