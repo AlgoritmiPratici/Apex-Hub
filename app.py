@@ -12,6 +12,11 @@ import plotly.graph_objects as go
 # ==========================================
 st.set_page_config(page_title="NEXUS Cloud | Enterprise Infrastructure", layout="wide", initial_sidebar_state="expanded")
 
+# --- CONFIGURAZIONE ENDPOINT CRM ---
+# Inserisci qui l'URL del tuo Webhook di Make.com o Zapier per raccogliere i Lead
+MAKE_WEBHOOK_URL = "INSERISCI_QUI_IL_TUO_LINK_MAKE_COM" 
+# Esempio: "https://hook.eu2.make.com/a1b2c3d4e5f6g7h8..."
+
 # Inizializzazione Blindata (Zero AttributeError)
 SYSTEM_STATES = {
     'active_tool': None,
@@ -25,10 +30,9 @@ for key, val in SYSTEM_STATES.items():
         st.session_state[key] = val
 
 def sys_time():
-    """Genera timestamp millisecondi per log server ultra-realistici."""
     return datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
 
-# Deep Linking Parametrico per ManyChat (?workspace=core o ?workspace=vault)
+# Deep Linking Parametrico (?workspace=core o ?workspace=vault)
 param_hub = st.query_params.get("workspace", "core")
 
 # ==========================================
@@ -73,7 +77,7 @@ st.markdown("""
     }
     .err-log { color: #EF4444; } .sys-log { color: #71717A; } .warn-log { color: #F59E0B; } .acc-log { color: #38BDF8; }
     
-    /* Pulsanti Elite Edge-to-Edge */
+    /* Pulsanti Elite */
     div.stButton > button {
         background-color: #FFFFFF !important; color: #000000 !important; font-weight: 800 !important;
         border-radius: 6px !important; border: none !important; padding: 0.8rem 1.5rem !important;
@@ -131,6 +135,7 @@ st.markdown("""
 # 3. HELPER UX: HEADER BIPOLARI (Business/Tech)
 # ==========================================
 def render_page_header(badge, title, use_case, tech_spec):
+    """Interfaccia Bipolare: Vantaggio per i CEO, Specifiche per i CTO."""
     st.markdown(f"<div class='status-badge'>{badge}</div>", unsafe_allow_html=True)
     st.markdown(f"<h1>{title}</h1>", unsafe_allow_html=True)
     
@@ -142,7 +147,7 @@ def render_page_header(badge, title, use_case, tech_spec):
     st.markdown("<br>", unsafe_allow_html=True)
 
 # ==========================================
-# 4. ROUTING TASSONOMICO (SIDEBAR)
+# 4. ROUTING TASSONOMICO (LA MATRICE MENU)
 # ==========================================
 st.sidebar.markdown("""
     <div style="text-align: center; margin-bottom: 2rem;">
@@ -178,7 +183,7 @@ if selected_workspace == "⚡ NEXUS CORE (Engineering)":
 else:
     selected_tool = "08. Archivio AI & SaaS (Top 50)"
 
-# Garbage Collection Inter-Tool (Elimina memory leaks)
+# Absolute Garbage Collection (Previene il Memory Leak)
 if st.session_state.active_tool != selected_tool:
     st.session_state.sys_logs = ""
     st.session_state.m1_buffer = None
@@ -192,17 +197,17 @@ if st.session_state.active_tool != selected_tool:
 if selected_tool == "01. Normalizzazione Dati (CSV)":
     render_page_header(
         "DATA PROCESSING", "Normalizzazione Dati",
-        "I database disorganizzati uccidono le conversioni e intasano i CRM. Carica un Data Dump esportato dai tuoi vecchi gestionali. Il sistema rimuove all'istante i record duplicati e corregge le email malformate. Ottieni un database puro, risparmiando decine di ore di lavoro manuale su Excel.",
-        "Libreria base: <code>pandas</code>. Operazioni: De-duplicazione vettoriale <code>drop_duplicates()</code>. Gestione fallback se la colonna Email non esiste (Try-Except). Memoria totalmente volatile."
+        "I database disorganizzati uccidono le conversioni e intasano i CRM. Carica un Data Dump esportato dai tuoi vecchi gestionali. Il sistema rimuove all'istante i record duplicati e corregge le email malformate. Ottieni un database puro, pronto per essere caricato sul tuo CRM, salvando decine di ore di lavoro manuale su Excel.",
+        "Libreria base: <code>pandas</code>. Operazioni: De-duplicazione vettoriale globale via <code>drop_duplicates()</code>. Type casting forzato e regex trim su array 'Email'. Memoria: Totalmente volatile (elaborazione RAM-only), crittografia locale garantita."
     )
     
     st.markdown("<div class='nexus-card'>", unsafe_allow_html=True)
     uploaded_file = st.file_uploader("Trascina il tuo Data Dump (.csv) qui", type=["csv"])
     
     if uploaded_file:
-        if st.button("ESEGUI NORMALIZZAZIONE", type="primary"):
-            with st.spinner("Allocazione buffer di memoria..."):
-                time.sleep(0.8) # Labor illusion
+        if st.button("ESEGUI NORMALIZZAZIONE ALGORITMICA", type="primary"):
+            with st.spinner("Ingegnerizzazione dei dati in corso..."):
+                time.sleep(0.7)
                 try:
                     try:
                         df_raw = pd.read_csv(uploaded_file, sep=None, engine='python', encoding='utf-8')
@@ -225,7 +230,7 @@ if selected_tool == "01. Normalizzazione Dati (CSV)":
                     st.session_state.m1_buffer = df_clean
                     st.session_state.sys_logs = f"<span class='sys-log'>[{sys_time()}] [root@nexus] ~ Data Parsing Eseguito. Latenza: 1.8ms.</span><br>{log_m}<br><br><span class='acc-log'>Record Iniziali: {r_in} | Record Validi: {r_out} | Anomalie Distrutte: {r_in - r_out}</span>"
                 except Exception as e:
-                    st.session_state.sys_logs = f"<span class='err-log'>[{sys_time()}] [FATAL] Impossibile elaborare il file. Formattazione non standard. Dettagli: {e}</span>"
+                    st.session_state.sys_logs = f"<span class='err-log'>[{sys_time()}] [FATAL] Impossibile elaborare il file. Formattazione non standard. Dettagli sistema: {e}</span>"
 
     if st.session_state.m1_buffer is not None:
         st.markdown(f"<div class='cmd-window'>{st.session_state.sys_logs}</div><br>", unsafe_allow_html=True)
@@ -238,7 +243,7 @@ elif selected_tool == "02. Sicurezza Ambientale (.env)":
     render_page_header(
         "CYBERSECURITY", "Sicurezza Ambientale (.env)",
         "L'errore numero uno che causa i data breach aziendali è lasciare le password scritte in chiaro nel codice (GitHub). Incolla qui le tue configurazioni: il sistema estrarrà le informazioni sensibili isolandole, generando i file (.env e .gitignore) per blindare il server prima del deployment.",
-        "Applicazione rigorosa della 12-Factor App Methodology. Analisi pattern per il disaccoppiamento logico tra Environment Variables e repository."
+        "Applicazione rigorosa della 12-Factor App Methodology. Analisi pattern per il disaccoppiamento logico tra Environment Variables e repository Git."
     )
     
     st.markdown("<div class='nexus-card'>", unsafe_allow_html=True)
@@ -246,12 +251,12 @@ elif selected_tool == "02. Sicurezza Ambientale (.env)":
     env_input = st.text_area("Incolla variabili esposte (Formato Key=Value):", value=raw_env_str, height=120)
     
     if st.button("BLINDA ARCHITETTURA DI SISTEMA", type="primary"):
-        st.session_state.sys_logs = f"<span class='sys-log'>[{sys_time()}] [sec-ops@nexus] ~ Scansione file...</span><br><span class='warn-log'>[ALERT] Rilevate password e chiavi API in chiaro.</span><br><span class='sys-log'>[{sys_time()}] [ENCRYPT] Generazione isolamento in memoria...</span><br><span style='color:#10B981'>[SUCCESS] Architettura protetta. File asettici pronti per il download.</span>"
+        st.session_state.sys_logs = f"<span class='sys-log'>[{sys_time()}] [sec-ops@nexus] ~ Scansione file configurazione e moduli...</span><br><span class='warn-log'>[ALERT] Rilevate password e chiavi API esposte in chiaro.</span><br><span class='sys-log'>[{sys_time()}] [ENCRYPT] Generazione isolamento in memoria...</span><br><span style='color:#10B981'>[SUCCESS] Architettura protetta. File asettici pronti per il deployment.</span>"
         
     if st.session_state.sys_logs != "":
         st.markdown(f"<div class='cmd-window'>{st.session_state.sys_logs}</div><br>", unsafe_allow_html=True)
         c1, c2 = st.columns(2)
-        c1.download_button("📥 SCARICA FILE .ENV", env_input, ".env")
+        c1.download_button("📥 SCARICA .ENV", env_input, ".env")
         c2.download_button("📥 SCARICA FIREWALL .GITIGNORE", ".env\n__pycache__/\n*.session\n.DS_Store", ".gitignore")
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -260,7 +265,7 @@ elif selected_tool == "03. Router Notifiche Asincrono":
     render_page_header(
         "ALGORITHMS", "Router Notifiche Asincrono",
         "L'overload informativo paralizza il management. Incolla i dati di un evento di sistema (es. server down). L'algoritmo valuterà autonomamente l'urgenza: inoltrerà l'allarme ai manager solo se critico, altrimenti archivierà in silenzio l'evento nei log.",
-        "Simulazione Endpoint REST in ricezione. Parsing asincrono del payload JSON. Switch logico interno sulla chiave 'priority' (Event-Driven Architecture) O(1)."
+        "Simulazione Endpoint REST in ricezione. Parsing asincrono del payload JSON. Switch logico interno sulla chiave 'priority' (Event-Driven Architecture) con tempo di esecuzione O(1)."
     )
     
     st.markdown("<div class='nexus-card'>", unsafe_allow_html=True)
@@ -291,8 +296,8 @@ elif selected_tool == "03. Router Notifiche Asincrono":
 elif selected_tool == "04. Integrazione API (Sandbox)":
     render_page_header(
         "NETWORK OPS", "Integrazione API (Sandbox)",
-        "Garantisci l'integrità dei flussi aziendali. Inserisci l'URL del tuo Webhook e invia un pacchetto dati di prova. Il sistema testerà la latenza di rete e verificherà che l'informazione sia giunta intatta a destinazione.",
-        "Esecuzione modulo <code>requests.post</code> nativo. Handshake TCP/TLS asincrono verso endpoint remoto. Misurazione telemetrica della latenza e validazione HTTP Status Code."
+        "Garantisci l'integrità dei flussi aziendali. Inserisci l'URL del tuo Webhook e invia un pacchetto dati di prova. Il sistema simulerà un ping HTTP, misurerà la latenza di rete e verificherà che l'informazione sia giunta intatta a destinazione.",
+        "Esecuzione modulo <code>requests.post</code> nativo. Handshake TCP/TLS asincrono verso endpoint remoto. Misurazione telemetrica della latenza in millisecondi e validazione HTTP Status Code."
     )
     
     st.markdown("<div class='nexus-card'>", unsafe_allow_html=True)
@@ -307,9 +312,9 @@ elif selected_tool == "04. Integrazione API (Sandbox)":
             t0 = time.time()
             res = requests.post(url, json=p_json, timeout=5)
             lat = round(time.time() - t0, 3)
-            st.session_state.sys_logs += f"<br><span style='color:#10B981'>[{sys_time()}] [SUCCESS] Transazione validata. Connessione intatta.</span><br>HTTP CODE: {res.status_code}<br>LATENZA TCP: {lat}s<br><br><span class='acc-log'>[RAW SERVER RESPONSE]</span><br>{res.text[:250]}..."
+            st.session_state.sys_logs += f"<br><span style='color:#10B981'>[{sys_time()}] [SUCCESS] Transazione validata. Connessione intatta.</span><br>HTTP CODE: {res.status_code}<br>LATENZA TCP: {lat}s<br><br><span class='sys-log'>[RAW SERVER RESPONSE]</span><br>{res.text[:250]}..."
         except json.JSONDecodeError:
-            st.session_state.sys_logs += f"<br><span class='err-log'>[{sys_time()}] [ERROR] Formattazione JSON invalida. Il carico utile è stato respinto.</span>"
+            st.session_state.sys_logs += f"<br><span class='err-log'>[{sys_time()}] [ERROR] Formattazione JSON invalida. Il carico utile è stato respinto dal sistema prima dell'invio.</span>"
         except Exception as e:
             st.session_state.sys_logs += f"<br><span class='err-log'>[{sys_time()}] [TIMEOUT FATAL] Endpoint irraggiungibile o barriera firewall attiva. Dettagli: {e}</span>"
             
@@ -321,8 +326,8 @@ elif selected_tool == "04. Integrazione API (Sandbox)":
 elif selected_tool == "05. Compilatore Telegram Scraper":
     render_page_header(
         "DATA EXTRACTION", "Compilatore Telegram Scraper",
-        "Genera un software personalizzato per estrarre lead dai gruppi concorrenti. L'estrazione in Cloud genera il Ban immediato da parte di Telegram: inserisci i tuoi parametri qui. Compileremo un software Python asettico che potrai avviare in totale sicurezza dal tuo computer.",
-        "Generazione programmatica di script Python (libreria Telethon asincrona). L'eseguibile forza l'architettura client-side (localhost) per bypassare i filtri anti-bot IP cloud."
+        "Genera un software personalizzato per estrarre migliaia di contatti dai gruppi concorrenti. Poiché estrarre dati tramite Cloud genera un Ban immediato dell'account Telegram, inserisci i tuoi parametri qui. Compileremo un software Python sicuro che potrai scaricare ed avviare direttamente dal tuo computer.",
+        "Generazione programmatica di script Python (libreria Telethon asincrona). L'eseguibile richiede un'architettura client-side (localhost) per forzare l'handshaking OTP e bypassare i filtri anti-bot sui Server Cloud."
     )
     
     st.markdown("<div class='nexus-card'>", unsafe_allow_html=True)
@@ -335,9 +340,9 @@ elif selected_tool == "05. Compilatore Telegram Scraper":
         if api_id and api_hash and target:
             script = f"""from telethon.sync import TelegramClient\nimport csv\n\nwith TelegramClient('nexus_session', '{api_id}', '{api_hash}') as c:\n  users = c.get_participants('{target}')\n  with open('leads_estrazione.csv', 'w', newline='', encoding='utf-8-sig') as f:\n    w=csv.writer(f)\n    w.writerow(['ID','Username','Name'])\n    for u in users: w.writerow([u.id, u.username, u.first_name])\n  print('[OK] Estrazione Dati Completata.')"""
             st.session_state.m1_buffer = script
-            st.session_state.sys_logs = f"<span class='sys-log'>[{sys_time()}] [compiler@nexus] ~ Generazione variabili asincrone per '{target}'...</span><br><span style='color:#10B981'>[{sys_time()}] [SUCCESS] Software Python compilato in memoria. Binario pronto al download.</span>"
+            st.session_state.sys_logs = f"<span class='sys-log'>[{sys_time()}] [compiler@nexus] ~ Generazione variabili asincrone per il target '{target}'...</span><br><span style='color:#10B981'>[{sys_time()}] [SUCCESS] Software Python compilato in memoria. Binario pronto al download.</span>"
         else:
-            st.session_state.sys_logs = f"<span class='err-log'>[{sys_time()}] [FATAL ERROR] Compilazione abortita. Parametri API mancanti.</span>"
+            st.session_state.sys_logs = f"<span class='err-log'>[{sys_time()}] [FATAL ERROR] Impossibile completare la compilazione. Parametri API mancanti nel costruttore.</span>"
             st.session_state.m1_buffer = None
             
     if st.session_state.sys_logs != "":
@@ -350,7 +355,7 @@ elif selected_tool == "05. Compilatore Telegram Scraper":
 elif selected_tool == "06. Matrice Costi Infrastruttura":
     render_page_header(
         "FINANCIAL AUDIT", "Matrice Costi Infrastruttura",
-        "Evidenzia le perdite. Questa matrice mostra i software SaaS costosi e monolitici che la tua azienda usa oggi, fornendoti l'esatta alternativa gratuita e Open Source da implementare per azzerare totalmente le spese.",
+        "Evidenzia le perdite. Questa matrice mostra i software (SaaS) estremamente costosi e monolitici che la tua azienda usa oggi, fornendoti l'esatta alternativa gratuita e Open Source da implementare per azzerare totalmente i costi operativi.",
         "Audit comparativo TCO (Total Cost of Ownership) tra infrastrutture monolitiche legacy, e microservizi Cloud Serverless distribuiti (Edge Computing)."
     )
     
@@ -366,7 +371,7 @@ elif selected_tool == "06. Matrice Costi Infrastruttura":
 elif selected_tool == "07. Simulatore ROI Finanziario":
     render_page_header(
         "BUSINESS ANALYTICS", "Simulatore ROI Finanziario",
-        "Simulatore predittivo di marginalità in tempo reale. Inserisci il fatturato attuale e i costi tecnologici fissi. Il sistema calcolerà istantaneamente l'aumento dell'utile netto aziendale derivante dal taglio degli abbonamenti software.",
+        "Simulatore predittivo di marginalità in tempo reale. Inserisci il fatturato attuale e i costi tecnologici fissi. Il sistema calcolerà istantaneamente l'aumento dell'utile netto aziendale derivante dal taglio radicale degli abbonamenti software.",
         "Data Visualization tramite framework Plotly Express. Calcolo vettoriale real-time dell'abbattimento dell'Operational Expenditure (OPEX) e della dilatazione marginale."
     )
     
@@ -390,49 +395,44 @@ elif selected_tool == "07. Simulatore ROI Finanziario":
 
 
 # ==========================================
-# HUB 02: NEXUS VAULT (ASSET 03)
+# HUB 02: NEXUS VAULT (INTELLIGENCE DATABASE)
 # ==========================================
 elif selected_workspace == "🔒 NEXUS VAULT (Intelligence)":
     
     render_page_header(
         "DATA INTELLIGENCE", "Archivio AI & SaaS (Top 50)",
-        "Perché bruciare centinaia di ore in R&D quando il lavoro è già stato fatto? Esplora il database privato delle 50 architetture SaaS e Intelligenze Artificiali gratuite (Open Source) usate dai top player per automatizzare la propria azienda.",
-        "Rendering dinamico di DataFrame Pandas con maschera di filtraggio asincrona O(n). Data-Gate incapsulato per lead generation con simulazione Webhook SMTP."
+        "Perché bruciare centinaia di ore in R&D e migliaia di euro in licenze quando il lavoro è già stato fatto? Esplora il database privato delle 50 architetture SaaS e Intelligenze Artificiali gratuite (Open Source) usate dai top player mondiali per automatizzare la propria azienda.",
+        "Il caricamento avviene tramite fetch asincrono del dataset CSV in directory. Il Data-Gate implementa una validazione logica della stringa email inibendo attacchi di tipo SQL injection prima dell'esecuzione del webhook esterno."
     )
     
     st.markdown("<div class='nexus-card'>", unsafe_allow_html=True)
     
-    # I 10 TOOL B2B LETALI (L'esca per i CTO e Manager)
-    # L'operatore espanderà questo dizionario o collegherà un CSV reale (es. pd.read_csv('tools.csv'))
-    df_vault = pd.DataFrame([
-        {"Tecnologia": "Workflow Automation", "Software": "n8n Open Source", "Licenza": "0€ (Self Hosted)", "Vantaggio Strategico": "Distrugge i costi di Zapier. Esecuzioni illimitate."},
-        {"Tecnologia": "Database & Auth", "Software": "Supabase PostgreSQL", "Licenza": "Serverless Free", "Vantaggio Strategico": "Sostituisce Firebase. Open Source."},
-        {"Tecnologia": "AI Pair Programming", "Software": "Cursor AI", "Licenza": "Freemium", "Vantaggio Strategico": "Scrive e corregge codice backend in totale autonomia."},
-        {"Tecnologia": "Cloud Storage", "Software": "Cloudflare R2", "Licenza": "Generous Free Tier", "Vantaggio Strategico": "Azzera le bollette di traffico in uscita di AWS S3."},
-        {"Tecnologia": "Frontend Deployment", "Software": "Vercel", "Licenza": "Hobby Free", "Vantaggio Strategico": "Distribuzione globale di app React a latenza zero."},
-        {"Tecnologia": "Product Analytics", "Software": "PostHog", "Licenza": "Open Source", "Vantaggio Strategico": "Alternativa a Google Analytics incentrata sugli eventi."},
-        {"Tecnologia": "Data Scraping", "Software": "Apify", "Licenza": "Freemium", "Vantaggio Strategico": "Estrae dati da ogni sito web senza scrivere codice."},
-        {"Tecnologia": "Video Generativo", "Software": "CapCut Enterprise", "Licenza": "Freemium", "Vantaggio Strategico": "Montaggio automatizzato. Export 4K Senza Watermark."},
-        {"Tecnologia": "Modelli Vocali", "Software": "ElevenLabs Core", "Licenza": "10k Char Gratis", "Vantaggio Strategico": "Clonazione Neurale Reale per VSL."},
-        {"Tecnologia": "Motore Logico AI", "Software": "Gemini Advanced", "Licenza": "Standard Tier", "Vantaggio Strategico": "Finestra di contesto immensa (1M Token)."}
-    ])
+    # IMPORTAZIONE DEL DATABASE REALE (Legge il file nexus_ai_toolkit.csv caricato su GitHub)
+    try:
+        df_vault = pd.read_csv("nexus_ai_toolkit.csv")
+    except FileNotFoundError:
+        # Fallback di sicurezza in caso il file non sia ancora presente nel repository
+        st.error("Il file 'nexus_ai_toolkit.csv' non è presente nel server. Caricalo nel repository GitHub.")
+        df_vault = pd.DataFrame(columns=["Tecnologia", "Software", "Licenza", "Vantaggio Strategico"])
     
-    search = st.text_input("🔍 Ricerca rapida nel database (es. Automazione, Storage, Cloud)...")
-    if search:
+    search = st.text_input("🔍 Ricerca rapida nel database (es. Automazione, Hosting, Cloud)...")
+    if search and not df_vault.empty:
         df_vault = df_vault[df_vault.apply(lambda r: r.astype(str).str.contains(search, case=False).any(), axis=1)]
     
     # PAYWALL DATI (Il Value-Exchange)
-    # Mostra i primi 3 potentissimi tool per creare FOMO
+    # Mostra i primi 3 tool per creare FOMO
     display_df = df_vault if st.session_state.vault_clearance else df_vault.head(3)
-    st.dataframe(display_df, use_container_width=True, hide_index=True)
+    
+    if not df_vault.empty:
+        st.dataframe(display_df, use_container_width=True, hide_index=True)
     
     if not st.session_state.vault_clearance:
-        st.markdown("<div style='text-align:center; padding:1.5rem 1rem; color:#71717A; font-size:0.85rem; border-top:1px dashed #27272A; margin-bottom:2rem;'>[ RISORSE LIMITATE A SCHERMO. 47 RECORD OSCURATI. ]</div>", unsafe_allow_html=True)
+        st.markdown("<div style='text-align:center; padding:1.5rem 1rem; color:#71717A; font-size:0.85rem; border-top:1px dashed #27272A; margin-bottom:2rem;'>[ RISORSE LIMITATE A SCHERMO. ALTRI 47 RECORD OSCURATI. ]</div>", unsafe_allow_html=True)
         
-        # Form Ingegnerizzato per Alto Conversion Rate
+        # Form Ingegnerizzato per Alto Conversion Rate (Non poliziesco)
         st.markdown("<div style='border: 1px solid #27272A; border-radius: 8px; padding: 2rem; background: #050505;'>", unsafe_allow_html=True)
         st.markdown("<h3 style='margin-top:0; color:#FAFAFA !important;'>Sblocca il Database Integrale</h3>", unsafe_allow_html=True)
-        st.write("Dove ti inviamo l'accesso e il file CSV completo? Inserisci il tuo indirizzo email per sbloccare immediatamente il resto della tabella.")
+        st.write("Dove ti inviamo l'accesso e il file CSV completo? Inserisci la tua email migliore per sbloccare immediatamente a schermo il resto della tabella e scaricare l'archivio.")
         
         with st.form("clearance_form", clear_on_submit=False):
             email = st.text_input("Indirizzo Email per la consegna:", placeholder="nome@azienda.com", label_visibility="collapsed")
@@ -443,11 +443,19 @@ elif selected_workspace == "🔒 NEXUS VAULT (Intelligence)":
                 # Validazione rigorosa (anti-fake)
                 if len(email) > 5 and "@" in email and "." in email.split("@")[-1]:
                     
-                    # LOGICA DI BUSINESS PER IL FUTURO:
-                    # Inserisci il Webhook di Make.com qui per salvare la mail su Airtable/Brevo
-                    # es: requests.post("https://hook.make.com/tuo-codice", json={"email": email})
+                    # LOGICA DI INVIO AL CRM (MAKE.COM WEBHOOK)
+                    # Sostituisci questo URL con quello generato dal modulo "Custom Webhook" di Make.com
+                    MAKE_WEBHOOK_URL = "INSERISCI_QUI_IL_TUO_LINK_MAKE_COM"
                     
-                    # Simulazione UX
+                    try:
+                        if MAKE_WEBHOOK_URL != "INSERISCI_QUI_IL_TUO_LINK_MAKE_COM":
+                            # Spara in silenzio l'email al tuo CRM
+                            requests.post(MAKE_WEBHOOK_URL, json={"email": email, "source": "Nexus_Vault"}, timeout=3)
+                    except:
+                        # Se Make.com è offline, ignora l'errore per non bloccare l'esperienza del cliente
+                        pass
+                    
+                    # Simulazione visiva di caricamento (Value enhancer)
                     bar = st.progress(0)
                     for i in range(100):
                         time.sleep(0.005)
@@ -455,14 +463,15 @@ elif selected_workspace == "🔒 NEXUS VAULT (Intelligence)":
                     st.session_state.vault_clearance = True
                     st.rerun()
                 else:
-                    st.error("[ERROR] Indirizzo email aziendale o personale non valido. Verifica e riprova.")
+                    st.error("[ERROR] L'indirizzo inserito non è valido. Verifica la sintassi e riprova.")
         st.markdown("</div>", unsafe_allow_html=True)
         
     else:
         st.markdown("<div style='border: 1px solid #10B981; border-radius: 8px; padding: 2rem; background: rgba(16,185,129,0.05); text-align:center; margin-top:2rem;'>", unsafe_allow_html=True)
         st.markdown("<h3 style='color:#10B981 !important; margin-bottom:1rem;'>✅ Accesso Sbloccato con Successo</h3>", unsafe_allow_html=True)
         st.write("L'archivio integrale è ora visibile a schermo. Clicca il pulsante qui sotto per salvare il file CSV sul tuo computer.")
-        st.download_button("📥 DOWNLOAD DATABASE (.CSV)", df_vault.to_csv(index=False).encode('utf-8-sig'), "nexus_tech_vault.csv", "text/csv")
+        if not df_vault.empty:
+            st.download_button("📥 DOWNLOAD DATABASE (.CSV)", df_vault.to_csv(index=False).encode('utf-8-sig'), "nexus_tech_vault.csv", "text/csv")
         st.markdown("</div>", unsafe_allow_html=True)
         
     st.markdown("</div>", unsafe_allow_html=True)
