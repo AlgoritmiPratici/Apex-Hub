@@ -10,9 +10,19 @@ import plotly.graph_objects as go
 # ==========================================
 # 1. KERNEL & INFRASTRUCTURE STATE
 # ==========================================
-st.set_page_config(page_title="NEXUS Cloud | Enterprise Infrastructure", layout="wide", initial_sidebar_state="expanded")
+# Inizializzazione pulita senza hack CSS sull'header
+st.set_page_config(
+    page_title="NEXUS Cloud | Enterprise Infrastructure", 
+    layout="wide", 
+    initial_sidebar_state="expanded",
+    menu_items={
+        'Get Help': None,
+        'Report a bug': None,
+        'About': None
+    }
+)
 
-# Inizializzazione Blindata (Zero AttributeError)
+# Inizializzazione Blindata (Zero Memory Leaks)
 SYSTEM_STATES = {
     'active_tool': None,
     'm1_buffer': None,
@@ -28,39 +38,27 @@ def sys_time():
     """Genera timestamp millisecondi per log server ultra-realistici."""
     return datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
 
-# Deep Linking Parametrico per ManyChat
 param_hub = st.query_params.get("workspace", "core")
 
 # ==========================================
-# 2. VERCEL/LINEAR PREMIUM CSS ENGINE (BUG FIXED)
+# 2. VERCEL/LINEAR PREMIUM CSS ENGINE
 # ==========================================
 st.markdown("""
     <style>
-    /* ========================================================================= */
-    /* FIX CHIRURGICO DELL'HEADER E DEL MENU LATERALE (Niente più frecce sparite) */
-    /* ========================================================================= */
+    /* ========================================================= */
+    /* LA REGOLA D'ORO: NON TOCCARE L'HEADER NATIVO DI STREAMLIT */
+    /* ========================================================= */
+    /* Abbiamo rimosso ogni CSS che alterava data-testid="stHeader" o stHeaderActionElements */
     
-    /* 1. L'header deve esistere per mantenere viva la freccia, ma lo rendiamo trasparente */
-    [data-testid="stHeader"] { 
-        background: transparent !important; 
-        box-shadow: none !important;
-    }
+    /* Pulizia Footer e Bottone Deploy */
+    .stDeployButton, footer { display: none !important; }
     
-    /* 2. Nascondiamo SOLO la spazzatura a destra (Deploy, Menu Impostazioni, GitHub) */
-    [data-testid="stHeaderActionElements"] {
-        display: none !important; 
-        visibility: hidden !important; 
-        pointer-events: none !important;
-    }
-    
-    /* 3. Nascondiamo footer e toolbar delle tabelle */
-    footer, .stDeployButton, [data-testid="stElementToolbar"], [data-testid="stToolbar"], button[title="View fullscreen"] {
+    /* Distruzione Toolbar Tabelle (Risolve il bug "Keyboard double") */
+    [data-testid="stElementToolbar"], [data-testid="stToolbar"], button[title="View fullscreen"] {
         display: none !important; opacity: 0 !important; visibility: hidden !important; pointer-events: none !important;
     }
     
-    /* ========================================================================= */
-    /* STILE GLOBALE DARK ZINC */
-    /* ========================================================================= */
+    /* Typography & Palette (Dark Zinc) */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
     * { font-family: 'Inter', sans-serif; }
     html, body, [data-testid="stAppViewContainer"] { background-color: #030303 !important; color: #E4E4E7 !important; }
@@ -128,7 +126,7 @@ st.markdown("""
     div[role="radiogroup"] > label p { color: #A1A1AA !important; font-weight: 500; margin: 0; font-size:0.9rem;}
     div[role="radiogroup"] > label[data-checked="true"] p { color: #10B981 !important; font-weight: 600;}
     
-    /* Stile Schede (Tabs) */
+    /* Stile Schede (Tabs Vercel/Stripe style) */
     div[data-baseweb="tab-list"] { background-color: transparent !important; border-bottom: 1px solid #27272A; margin-bottom: 1rem;}
     div[data-baseweb="tab"] { background-color: transparent !important; border-radius: 0 !important; padding-top: 0.5rem; padding-bottom: 0.5rem;}
     div[data-baseweb="tab"] p { color: #71717A !important; font-weight: 600; font-size: 0.95rem;}
@@ -204,7 +202,7 @@ st.sidebar.markdown("<p style='font-size: 0.75rem; font-weight: 700; color: #FFF
 selected_category = st.sidebar.selectbox("Filtra per Categoria:", list(categories.keys()), label_visibility="collapsed")
 selected_tool = st.sidebar.radio("Strumenti Attivi:", categories[selected_category], label_visibility="collapsed")
 
-# Absolute Garbage Collection
+# Absolute Garbage Collection (Previene conflitti di stato)
 if st.session_state.active_tool != selected_tool:
     st.session_state.sys_logs = ""
     st.session_state.m1_buffer = None
@@ -287,7 +285,7 @@ elif selected_tool == "02. Sicurezza Ambientale (.env)":
     st.markdown("</div>", unsafe_allow_html=True)
 
 # --- 03. ROUTER NOTIFICHE ---
-elif selected_tool == "03. Router Notifiche Asincrono":
+elif selected_tool == "04. Router Notifiche Asincrono":
     source_py = """from fastapi import FastAPI, Request\napp = FastAPI()\n\n@app.post("/webhook")\nasync def route_traffic(req: Request):\n    payload = await req.json()\n    if payload.get("priority") == "CRITICAL":\n        return trigger_sms_alert()\n    return log_silently_to_db()"""
     render_page_header(
         "ALGORITHMS", "Router Notifiche Asincrono",
@@ -326,7 +324,7 @@ elif selected_tool == "03. Router Notifiche Asincrono":
     st.markdown("</div>", unsafe_allow_html=True)
 
 # --- 04. API INJECTOR ---
-elif selected_tool == "04. Integrazione API (Sandbox)":
+elif selected_tool == "05. Integrazione API (Sandbox)":
     source_py = """import requests\nimport json\n\ndef inject_payload(url, data_dict):\n    headers = {'Content-Type': 'application/json'}\n    response = requests.post(url, json=data_dict, headers=headers, timeout=5)\n    return response.status_code, response.elapsed.total_seconds()"""
     render_page_header(
         "NETWORK OPS", "Integrazione API (Sandbox)",
@@ -362,11 +360,11 @@ elif selected_tool == "04. Integrazione API (Sandbox)":
     st.markdown("</div>", unsafe_allow_html=True)
 
 # --- 05. COMPILATORE TELEGRAM ---
-elif selected_tool == "05. Compilatore Telegram Scraper":
+elif selected_tool == "03. Compilatore Telegram Scraper":
     source_py = """from telethon.sync import TelegramClient\nimport csv\n\n# Architettura compilata dinamicamente in memoria\n# L'handshake richiede esecuzione locale per bypass OTP"""
     render_page_header(
         "DATA EXTRACTION", "Compilatore Telegram Scraper",
-        "Genera un software personalizzato per estrarre migliaia di lead dai gruppi concorrenti. L'estrazione in Cloud genera il Ban immediato da parte di Telegram: inserisci i tuoi parametri qui. Compileremo un software Python sicuro che potrai scaricare ed avviare in totale privacy direttamente dal tuo computer.",
+        "Genera un software personalizzato per estrarre migliaia di lead dai gruppi concorrenti. Poiché estrarre dati tramite Cloud genera un Ban immediato dell'account Telegram, inserisci i tuoi parametri qui. Compileremo un software Python sicuro che potrai scaricare ed avviare in totale privacy direttamente dal tuo computer.",
         "Generazione programmatica di script Python (libreria Telethon asincrona). L'eseguibile forza l'architettura client-side (localhost) per bypassare i filtri anti-bot IP cloud.",
         source_py
     )
@@ -542,7 +540,7 @@ elif selected_workspace == "🔒 NEXUS VAULT (Intelligence)":
     if not st.session_state.vault_clearance:
         st.markdown("<div style='text-align:center; padding:1.5rem 1rem; color:#71717A; font-size:0.85rem; border-top:1px dashed #27272A; margin-bottom:2rem;'>[ RISORSE LIMITATE A SCHERMO. ALTRI 47 RECORD OSCURATI. ]</div>", unsafe_allow_html=True)
         
-        # FORM LEAD GEN (Value Exchange Frictionless)
+        # FORM LEAD GEN (Value Exchange Frictionless, NO "Verifica Aziendale")
         st.markdown("<div style='border: 1px solid #27272A; border-radius: 8px; padding: 2rem; background: #050505;'>", unsafe_allow_html=True)
         st.markdown("<h3 style='margin-top:0; color:#FAFAFA !important;'>Sblocca il Database Integrale</h3>", unsafe_allow_html=True)
         st.write("Dove ti inviamo il link per l'accesso e il download del database completo (formato CSV)? Inserisci il tuo indirizzo email qui sotto per ricevere l'accesso alle 47 risorse oscurate.")
@@ -556,12 +554,15 @@ elif selected_workspace == "🔒 NEXUS VAULT (Intelligence)":
                 if len(email) > 5 and "@" in email and "." in email.split("@")[-1]:
                     
                     # LOGICA DI INVIO AL CRM (MAKE.COM WEBHOOK)
+                    # INSERISCI QUI IL LINK DEL TUO WEBHOOK
                     MAKE_WEBHOOK_URL = "INSERISCI_QUI_IL_TUO_LINK_MAKE_COM"
                     
                     try:
                         if MAKE_WEBHOOK_URL != "INSERISCI_QUI_IL_TUO_LINK_MAKE_COM":
+                            # Spara in silenzio l'email al tuo CRM (Make/Zapier)
                             requests.post(MAKE_WEBHOOK_URL, json={"email": email, "source": "Nexus_Vault"}, timeout=3)
                     except:
+                        # Se Make.com è offline, ignora l'errore (Frictionless per il cliente)
                         pass
                     
                     # Simulazione visiva di caricamento (Labor Illusion)
