@@ -1,0 +1,51 @@
+﻿Tecnologia,Software,Licenza,Vantaggio Strategico
+AI Pair Programming,Cursor AI,Freemium,Scrive e corregge codice backend in totale autonomia.
+LLM IDE,Windsurf,Freemium,Agenti AI collaborativi per lo sviluppo software.
+Cloud IDE,GitHub Codespaces,Free Tier,Ambiente di sviluppo istantaneo nel browser.
+AI Code Completion,GitHub Copilot,Trial / Paid,Autocompletamento intelligente del codice.
+Workflow Automation,n8n Open Source,0€ (Self Hosted),Distrugge i costi di Zapier. Esecuzioni illimitate.
+Visual Automation,Make.com,Freemium,Integrazioni visive senza codice per processi complessi.
+Chatbot Builder,Typebot,Freemium / Open Source,Creazione di flussi conversazionali ad alta conversione.
+Browser Automation,Browserbase,Freemium,Esecuzione di script headless nei browser cloud.
+Database & Auth,Supabase,Serverless Free,Sostituisce Firebase. Postgres open source.
+Cloud Storage,Cloudflare R2,Generous Free Tier,Azzera le bollette di traffico in uscita (egress) di AWS S3.
+Frontend Deployment,Vercel,Hobby Free,Distribuzione globale di app React a latenza zero.
+Backend Hosting,Render,Free Tier,Hosting gratuito per container e servizi backend.
+Edge Computing,Cloudflare Workers,Free Tier,Esecuzione di codice a latenza zero in tutto il mondo.
+Serverless DB,Neon,Free Tier,Postgres serverless con separazione storage/compute.
+BaaS (Backend as a Service),Appwrite,Open Source,Backend completo per app e webapp.
+Hosting Container,Fly.io,Freemium,Deploy di container Docker in server vicini agli utenti.
+Motore Logico AI,Gemini Advanced,Standard Tier,Finestra di contesto immensa (1M+ Token).
+LLM API,Anthropic Claude,Pay-per-token,Il modello più avanzato per il ragionamento logico e coding.
+LLM API,OpenAI Platform,Pay-per-token,Accesso diretto alle API di GPT-4o e Whisper.
+Open Source Models,Hugging Face,Free / Compute,L'arsenale globale dei modelli open source.
+GPU Cloud,RunPod,Pay-as-you-go,Noleggio di GPU a basso costo per addestramento AI.
+Model Deployment,Replicate,Pay-per-prediction,Esecuzione di modelli AI open source via API.
+Vector Database,Pinecone,Free Tier,Memoria a lungo termine per agenti AI (RAG).
+Vector Database,Qdrant,Open Source,Motore di ricerca vettoriale per applicazioni AI.
+Modelli Vocali,ElevenLabs Core,10k Char Gratis,Clonazione Neurale Reale per VSL e Short.
+Video Generativo,CapCut Enterprise,Freemium,Montaggio automatizzato. Export 4K Senza Watermark.
+Immagini AI,Midjourney,Paid,La massima qualità visiva per asset creativi.
+Immagini AI,Leonardo.ai,Freemium,Generazione rapida e consistente di asset grafici.
+Sintesi Vocale Open,Bark (Suno),Open Source,Generazione vocale fotorealistica e multi-lingua.
+Video AI,Runway Gen-3,Freemium,Generazione video da testo di livello cinematografico.
+Data Scraping,Apify,Freemium,"Estrae dati da ogni sito web (Gmaps, IG) via API."
+Social Automation,PhantomBuster,Trial / Paid,Estrazione lead automatizzata da LinkedIn e Twitter.
+Web Scraper,ScrapingBee,Freemium,API per web scraping che bypassa i blocchi proxy.
+Email Marketing,Brevo (ex Sendinblue),Freemium (300/day),Gestione CRM e newsletter a costo zero iniziale.
+Email Transazionali,Resend,Freemium,"API email per sviluppatori, altissima deliverability."
+SaaS Email,Loops.so,Freemium,Email marketing disegnato specificamente per startup SaaS.
+Pagamenti,Stripe,Pay-per-transaction,Infrastruttura di pagamento globale e infallibile.
+Digital Products,Gumroad,Revenue Share,Hosting e vendita di file digitali a costo fisso zero.
+Link in Bio,Bento.me,Free,Aggregatore di link ad alto tasso di conversione estetica.
+Form Builder,Tally,Freemium (99% Free),Creazione di form senza limiti di risposte (alternativa a Typeform).
+Product Analytics,PostHog,Open Source / Freemium,Alternativa a GA4 con registrazione sessioni utente.
+Web Analytics,Plausible,Open Source,Statistiche web privacy-friendly senza cookie.
+Business Intelligence,Metabase,Open Source,Dashboard visive per analizzare i database aziendali.
+Uptime Monitor,UptimeRobot,Freemium,Ping automatico per verificare se i server sono online.
+UI/UX Design,Figma,Freemium,Standard industriale per la prototipazione di app e siti web.
+No-Code Web,Framer,Freemium,Sviluppo di landing page premium a velocità record.
+No-Code Web,Webflow,Freemium,Siti web complessi con CMS senza scrivere codice.
+Workspace,Notion,Freemium,Gestione della conoscenza aziendale e wiki interna.
+Knowledge Graph,Obsidian,Free (Offline),Prendi appunti testuali interconnessi salvati in locale.
+Design Assets,Lucide Icons,Open Source,Libreria di icone vettoriali perfette per interfacce SaaS.
