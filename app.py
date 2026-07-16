@@ -10,7 +10,7 @@ import plotly.graph_objects as go
 # ==========================================
 # 1. KERNEL & INFRASTRUCTURE STATE
 # ==========================================
-# Inizializzazione pulita senza hack CSS sull'header
+# Configurazione iniziale pulita, svuota solo le voci inutili del menu nativo
 st.set_page_config(
     page_title="NEXUS Cloud | Enterprise Infrastructure", 
     layout="wide", 
@@ -22,7 +22,7 @@ st.set_page_config(
     }
 )
 
-# Inizializzazione Blindata (Zero Memory Leaks)
+# Inizializzazione Blindata (Garbage Collection & Persistence)
 SYSTEM_STATES = {
     'active_tool': None,
     'm1_buffer': None,
@@ -45,10 +45,10 @@ param_hub = st.query_params.get("workspace", "core")
 # ==========================================
 st.markdown("""
     <style>
-    /* ========================================================= */
-    /* LA REGOLA D'ORO: NON TOCCARE L'HEADER NATIVO DI STREAMLIT */
-    /* ========================================================= */
-    /* Abbiamo rimosso ogni CSS che alterava data-testid="stHeader" o stHeaderActionElements */
+    /* ========================================================================= */
+    /* LA REGOLA D'ORO: NESSUNA MODIFICA ALL'HEADER NATIVO DI STREAMLIT */
+    /* ========================================================================= */
+    /* Nessun display:none o transparent applicato a [data-testid="stHeader"] */
     
     /* Pulizia Footer e Bottone Deploy */
     .stDeployButton, footer { display: none !important; }
@@ -89,7 +89,7 @@ st.markdown("""
     }
     .err-log { color: #EF4444; } .sys-log { color: #71717A; } .warn-log { color: #F59E0B; } .acc-log { color: #38BDF8; }
     
-    /* Pulsanti Elite Edge-to-Edge */
+    /* Pulsanti Elite */
     div.stButton > button {
         background-color: #FFFFFF !important; color: #000000 !important; font-weight: 800 !important;
         border-radius: 6px !important; border: none !important; padding: 0.8rem 1.5rem !important;
@@ -126,7 +126,7 @@ st.markdown("""
     div[role="radiogroup"] > label p { color: #A1A1AA !important; font-weight: 500; margin: 0; font-size:0.9rem;}
     div[role="radiogroup"] > label[data-checked="true"] p { color: #10B981 !important; font-weight: 600;}
     
-    /* Stile Schede (Tabs Vercel/Stripe style) */
+    /* Stile Schede (Tabs) */
     div[data-baseweb="tab-list"] { background-color: transparent !important; border-bottom: 1px solid #27272A; margin-bottom: 1rem;}
     div[data-baseweb="tab"] { background-color: transparent !important; border-radius: 0 !important; padding-top: 0.5rem; padding-bottom: 0.5rem;}
     div[data-baseweb="tab"] p { color: #71717A !important; font-weight: 600; font-size: 0.95rem;}
@@ -151,7 +151,6 @@ st.markdown("""
 # 3. HELPER UX: HEADER ENTERPRISE
 # ==========================================
 def render_page_header(badge, title, use_case, tech_spec, python_code=None):
-    """Interfaccia Bipolare: Impatto per i Manager, Architettura e Codice per i CTO."""
     st.markdown(f"<div class='status-badge'>{badge}</div>", unsafe_allow_html=True)
     st.markdown(f"<h1>{title}</h1>", unsafe_allow_html=True)
     
@@ -166,7 +165,6 @@ def render_page_header(badge, title, use_case, tech_spec, python_code=None):
     st.markdown("<br>", unsafe_allow_html=True)
 
 def render_vault_header(badge, title, desc):
-    """Header minimale per il Vault."""
     st.markdown(f"<div class='status-badge'>{badge}</div>", unsafe_allow_html=True)
     st.markdown(f"<h1>{title}</h1>", unsafe_allow_html=True)
     st.markdown(f"<div style='padding: 0.5rem 0; margin-bottom: 1.5rem;'><p style='color:#F4F4F5; font-size:1.05rem;'>{desc}</p></div>", unsafe_allow_html=True)
@@ -202,14 +200,14 @@ st.sidebar.markdown("<p style='font-size: 0.75rem; font-weight: 700; color: #FFF
 selected_category = st.sidebar.selectbox("Filtra per Categoria:", list(categories.keys()), label_visibility="collapsed")
 selected_tool = st.sidebar.radio("Strumenti Attivi:", categories[selected_category], label_visibility="collapsed")
 
-# Absolute Garbage Collection (Previene conflitti di stato)
+# Absolute Garbage Collection
 if st.session_state.active_tool != selected_tool:
     st.session_state.sys_logs = ""
     st.session_state.m1_buffer = None
     st.session_state.active_tool = selected_tool
 
 # ==========================================
-# 5. WORKSPACE: NEXUS CORE (ENGINEERING)
+# 5. WORKSPACE: NEXUS CORE
 # ==========================================
 
 # --- 01. CSV NORMALIZER ---
@@ -284,7 +282,38 @@ elif selected_tool == "02. Sicurezza Ambientale (.env)":
         c2.download_button("📥 SCARICA FIREWALL .GITIGNORE", ".env\n__pycache__/\n*.session\n.DS_Store", ".gitignore")
     st.markdown("</div>", unsafe_allow_html=True)
 
-# --- 03. ROUTER NOTIFICHE ---
+# --- 03. COMPILATORE TELEGRAM ---
+elif selected_tool == "03. Compilatore Telegram Scraper":
+    source_py = """from telethon.sync import TelegramClient\nimport csv\n\n# Architettura compilata dinamicamente in memoria\n# L'handshake richiede esecuzione locale per bypass OTP"""
+    render_page_header(
+        "DATA EXTRACTION", "Compilatore Telegram Scraper",
+        "Genera un software personalizzato per estrarre migliaia di lead dai gruppi concorrenti. L'estrazione in Cloud genera il Ban immediato da parte di Telegram: inserisci i tuoi parametri qui. Compileremo un software Python sicuro che potrai scaricare ed avviare in totale privacy direttamente dal tuo computer.",
+        "Generazione programmatica di script Python (libreria Telethon asincrona). L'eseguibile forza l'architettura client-side (localhost) per bypassare i filtri anti-bot IP cloud.",
+        source_py
+    )
+    
+    st.markdown("<div class='nexus-card'>", unsafe_allow_html=True)
+    c1, c2 = st.columns(2)
+    api_id = c1.text_input("Telegram API_ID", placeholder="es. 2847592")
+    api_hash = c2.text_input("Telegram API_HASH", placeholder="es. c4e8b...", type="password")
+    target = st.text_input("Username Community Competitor (senza @)", placeholder="es. marketing_italia")
+    
+    if st.button("COSTRUISCI SOFTWARE SORGENTE", type="primary"):
+        if api_id and api_hash and target:
+            script = f"""from telethon.sync import TelegramClient\nimport csv\n\nwith TelegramClient('nexus_session', '{api_id}', '{api_hash}') as c:\n  users = c.get_participants('{target}')\n  with open('leads_estrazione.csv', 'w', newline='', encoding='utf-8-sig') as f:\n    w=csv.writer(f)\n    w.writerow(['ID','Username','Name'])\n    for u in users: w.writerow([u.id, u.username, u.first_name])\n  print('[OK] Estrazione Dati Completata.')"""
+            st.session_state.m1_buffer = script
+            st.session_state.sys_logs = f"<span class='sys-log'>[{sys_time()}] [compiler@nexus] ~ Generazione variabili asincrone per il target '{target}'...</span><br><span style='color:#10B981'>[{sys_time()}] [SUCCESS] Software Python compilato in memoria. Binario pronto al download.</span>"
+        else:
+            st.session_state.sys_logs = f"<span class='err-log'>[{sys_time()}] [FATAL ERROR] Impossibile completare la compilazione. Parametri API mancanti nel costruttore.</span>"
+            st.session_state.m1_buffer = None
+            
+    if st.session_state.sys_logs != "":
+        st.markdown(f"<div class='cmd-window'>{st.session_state.sys_logs}</div><br>", unsafe_allow_html=True)
+        if st.session_state.m1_buffer:
+            st.download_button("📥 SCARICA SCRIPT PYTHON (.PY)", st.session_state.m1_buffer, "nexus_telegram_engine.py")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# --- 04. ROUTER NOTIFICHE ---
 elif selected_tool == "04. Router Notifiche Asincrono":
     source_py = """from fastapi import FastAPI, Request\napp = FastAPI()\n\n@app.post("/webhook")\nasync def route_traffic(req: Request):\n    payload = await req.json()\n    if payload.get("priority") == "CRITICAL":\n        return trigger_sms_alert()\n    return log_silently_to_db()"""
     render_page_header(
@@ -311,7 +340,6 @@ elif selected_tool == "04. Router Notifiche Asincrono":
                     data["nexus_action"] = "SILENT_DB_LOG"
                     msg = f"<span class='sys-log'>[{sys_time()}] [SILENT] Priorità Bassa. Rumore soppresso e archiviato per audit futuro.</span>"
                 
-                # Sanitizzazione del JSON per il rendering HTML
                 json_str = json.dumps(data, indent=2)
                 formatted_json = json_str.replace('\n', '<br>').replace('  ', '&nbsp;&nbsp;')
                 
@@ -323,7 +351,7 @@ elif selected_tool == "04. Router Notifiche Asincrono":
         st.markdown(f"<div class='cmd-window'>{st.session_state.sys_logs}</div>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
-# --- 04. API INJECTOR ---
+# --- 05. API INJECTOR ---
 elif selected_tool == "05. Integrazione API (Sandbox)":
     source_py = """import requests\nimport json\n\ndef inject_payload(url, data_dict):\n    headers = {'Content-Type': 'application/json'}\n    response = requests.post(url, json=data_dict, headers=headers, timeout=5)\n    return response.status_code, response.elapsed.total_seconds()"""
     render_page_header(
@@ -346,7 +374,6 @@ elif selected_tool == "05. Integrazione API (Sandbox)":
             res = requests.post(url, json=p_json, timeout=5)
             lat = round(time.time() - t0, 3)
             
-            # Sanitizzazione testo risposta del server per HTML
             safe_res = res.text[:250].replace('\n', '<br>').replace('  ', '&nbsp;&nbsp;')
             
             st.session_state.sys_logs += f"<br><span style='color:#10B981'>[{sys_time()}] [SUCCESS] Transazione validata. Connessione intatta.</span><br>HTTP CODE: {res.status_code}<br>LATENZA TCP: {lat}s<br><br><span class='sys-log'>[RAW SERVER RESPONSE]</span><br>{safe_res}..."
@@ -357,37 +384,6 @@ elif selected_tool == "05. Integrazione API (Sandbox)":
             
     if st.session_state.sys_logs != "":
         st.markdown(f"<div class='cmd-window'>{st.session_state.sys_logs}</div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-
-# --- 05. COMPILATORE TELEGRAM ---
-elif selected_tool == "03. Compilatore Telegram Scraper":
-    source_py = """from telethon.sync import TelegramClient\nimport csv\n\n# Architettura compilata dinamicamente in memoria\n# L'handshake richiede esecuzione locale per bypass OTP"""
-    render_page_header(
-        "DATA EXTRACTION", "Compilatore Telegram Scraper",
-        "Genera un software personalizzato per estrarre migliaia di lead dai gruppi concorrenti. Poiché estrarre dati tramite Cloud genera un Ban immediato dell'account Telegram, inserisci i tuoi parametri qui. Compileremo un software Python sicuro che potrai scaricare ed avviare in totale privacy direttamente dal tuo computer.",
-        "Generazione programmatica di script Python (libreria Telethon asincrona). L'eseguibile forza l'architettura client-side (localhost) per bypassare i filtri anti-bot IP cloud.",
-        source_py
-    )
-    
-    st.markdown("<div class='nexus-card'>", unsafe_allow_html=True)
-    c1, c2 = st.columns(2)
-    api_id = c1.text_input("Telegram API_ID", placeholder="es. 2847592")
-    api_hash = c2.text_input("Telegram API_HASH", placeholder="es. c4e8b...", type="password")
-    target = st.text_input("Username Community Competitor (senza @)", placeholder="es. marketing_italia")
-    
-    if st.button("COSTRUISCI SOFTWARE SORGENTE", type="primary"):
-        if api_id and api_hash and target:
-            script = f"""from telethon.sync import TelegramClient\nimport csv\n\nwith TelegramClient('nexus_session', '{api_id}', '{api_hash}') as c:\n  users = c.get_participants('{target}')\n  with open('leads_estrazione.csv', 'w', newline='', encoding='utf-8-sig') as f:\n    w=csv.writer(f)\n    w.writerow(['ID','Username','Name'])\n    for u in users: w.writerow([u.id, u.username, u.first_name])\n  print('[OK] Estrazione Dati Completata.')"""
-            st.session_state.m1_buffer = script
-            st.session_state.sys_logs = f"<span class='sys-log'>[{sys_time()}] [compiler@nexus] ~ Generazione variabili asincrone per il target '{target}'...</span><br><span style='color:#10B981'>[{sys_time()}] [SUCCESS] Software Python compilato in memoria. Binario pronto al download.</span>"
-        else:
-            st.session_state.sys_logs = f"<span class='err-log'>[{sys_time()}] [FATAL ERROR] Impossibile completare la compilazione. Parametri API mancanti nel costruttore.</span>"
-            st.session_state.m1_buffer = None
-            
-    if st.session_state.sys_logs != "":
-        st.markdown(f"<div class='cmd-window'>{st.session_state.sys_logs}</div><br>", unsafe_allow_html=True)
-        if st.session_state.m1_buffer:
-            st.download_button("📥 SCARICA SCRIPT PYTHON (.PY)", st.session_state.m1_buffer, "nexus_telegram_engine.py")
     st.markdown("</div>", unsafe_allow_html=True)
 
 # --- 06. COST MATRIX ---
@@ -407,7 +403,6 @@ def calculate_burn_rate(legacy_stack):
     st.markdown("<div class='nexus-card'>", unsafe_allow_html=True)
     st.markdown("<p style='color:#FAFAFA; font-weight:600; margin-bottom:1rem; font-size:1.1rem;'>Seleziona i servizi software (SaaS) attualmente in uso nella tua azienda:</p>", unsafe_allow_html=True)
     
-    # MATRICE ITALIANA: 12 Pilastri SaaS
     c1, c2, c3, c4 = st.columns(4)
     zapier = c1.checkbox("Zapier / Make")
     hubspot = c2.checkbox("HubSpot / Salesforce")
@@ -520,7 +515,6 @@ elif selected_workspace == "🔒 NEXUS VAULT (Intelligence)":
     
     st.markdown("<div class='nexus-card'>", unsafe_allow_html=True)
     
-    # IMPORTAZIONE DEL DATABASE REALE (Legge il file CSV scaricato dal repository)
     try:
         df_vault = pd.read_csv("nexus_ai_toolkit.csv")
     except FileNotFoundError:
@@ -531,7 +525,6 @@ elif selected_workspace == "🔒 NEXUS VAULT (Intelligence)":
     if search and not df_vault.empty:
         df_vault = df_vault[df_vault.apply(lambda r: r.astype(str).str.contains(search, case=False).any(), axis=1)]
     
-    # PAYWALL DATI: Mostra solo 3 righe se non sbloccato
     display_df = df_vault if st.session_state.vault_clearance else df_vault.head(3)
     
     if not df_vault.empty:
@@ -540,7 +533,6 @@ elif selected_workspace == "🔒 NEXUS VAULT (Intelligence)":
     if not st.session_state.vault_clearance:
         st.markdown("<div style='text-align:center; padding:1.5rem 1rem; color:#71717A; font-size:0.85rem; border-top:1px dashed #27272A; margin-bottom:2rem;'>[ RISORSE LIMITATE A SCHERMO. ALTRI 47 RECORD OSCURATI. ]</div>", unsafe_allow_html=True)
         
-        # FORM LEAD GEN (Value Exchange Frictionless, NO "Verifica Aziendale")
         st.markdown("<div style='border: 1px solid #27272A; border-radius: 8px; padding: 2rem; background: #050505;'>", unsafe_allow_html=True)
         st.markdown("<h3 style='margin-top:0; color:#FAFAFA !important;'>Sblocca il Database Integrale</h3>", unsafe_allow_html=True)
         st.write("Dove ti inviamo il link per l'accesso e il download del database completo (formato CSV)? Inserisci il tuo indirizzo email qui sotto per ricevere l'accesso alle 47 risorse oscurate.")
@@ -552,20 +544,13 @@ elif selected_workspace == "🔒 NEXUS VAULT (Intelligence)":
             
             if submit:
                 if len(email) > 5 and "@" in email and "." in email.split("@")[-1]:
-                    
-                    # LOGICA DI INVIO AL CRM (MAKE.COM WEBHOOK)
-                    # INSERISCI QUI IL LINK DEL TUO WEBHOOK
                     MAKE_WEBHOOK_URL = "INSERISCI_QUI_IL_TUO_LINK_MAKE_COM"
-                    
                     try:
                         if MAKE_WEBHOOK_URL != "INSERISCI_QUI_IL_TUO_LINK_MAKE_COM":
-                            # Spara in silenzio l'email al tuo CRM (Make/Zapier)
                             requests.post(MAKE_WEBHOOK_URL, json={"email": email, "source": "Nexus_Vault"}, timeout=3)
                     except:
-                        # Se Make.com è offline, ignora l'errore (Frictionless per il cliente)
                         pass
                     
-                    # Simulazione visiva di caricamento (Labor Illusion)
                     bar = st.progress(0)
                     for i in range(100):
                         time.sleep(0.005)
