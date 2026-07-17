@@ -10,7 +10,6 @@ import plotly.graph_objects as go
 # ==========================================
 # 1. KERNEL & INFRASTRUCTURE STATE
 # ==========================================
-# Configurazione nativa: pulisce il menu a tendina in alto a destra senza usare hack CSS
 st.set_page_config(
     page_title="NEXUS Cloud | Enterprise Infrastructure", 
     layout="wide", 
@@ -22,7 +21,7 @@ st.set_page_config(
     }
 )
 
-# Inizializzazione Blindata (Garbage Collection & Persistence)
+# Inizializzazione Blindata (Zero Memory Leaks)
 SYSTEM_STATES = {
     'active_tool': None,
     'm1_buffer': None,
@@ -43,12 +42,24 @@ param_hub = st.query_params.get("workspace", "core")
 # ==========================================
 # 2. VERCEL/LINEAR PREMIUM CSS ENGINE
 # ==========================================
-# ATTENZIONE: Nessun CSS applicato a header, stHeader, o collapsedControl.
-# Il menu laterale è ora gestito nativamente per garantire il 100% di affidabilità.
 st.markdown("""
     <style>
-    /* Pulizia Footer */
-    footer { display: none !important; }
+    /* ========================================================= */
+    /* LA SOLUZIONE DEFINITIVA: FIXED LEFT NAVIGATION            */
+    /* Nascondiamo il bottone di chiusura del menu. Il menu      */
+    /* resta sempre aperto, eliminando il bug alla radice.       */
+    /* ========================================================= */
+    [data-testid="stSidebarCollapseButton"] { display: none !important; }
+    
+    /* Rimuove l'inutile decorazione superiore di Streamlit */
+    [data-testid="stDecoration"] { display: none !important; }
+    
+    /* Rende l'header trasparente e nasconde bottoni spazzatura a destra */
+    header { background-color: transparent !important; box-shadow: none !important; }
+    [data-testid="stHeaderActionElements"] { display: none !important; }
+    
+    /* Pulizia Footer e Bottone Deploy */
+    .stDeployButton, footer { display: none !important; }
     
     /* Distruzione Toolbar Tabelle (Risolve il bug "Keyboard double") */
     [data-testid="stElementToolbar"], [data-testid="stToolbar"], button[title="View fullscreen"] {
@@ -163,7 +174,7 @@ def render_page_header(badge, title, use_case, tech_spec, python_code=None):
     st.markdown("<br>", unsafe_allow_html=True)
 
 def render_vault_header(badge, title, desc):
-    """Header minimale per il Vault (Senza schede tecniche)."""
+    """Header minimale per il Vault."""
     st.markdown(f"<div class='status-badge'>{badge}</div>", unsafe_allow_html=True)
     st.markdown(f"<h1>{title}</h1>", unsafe_allow_html=True)
     st.markdown(f"<div style='padding: 0.5rem 0; margin-bottom: 1.5rem;'><p style='color:#F4F4F5; font-size:1.05rem;'>{desc}</p></div>", unsafe_allow_html=True)
@@ -178,7 +189,6 @@ st.sidebar.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# Architettura a matrice per scalabilità infinita per entrambi i Workspace
 ECOSYSTEMS = {
     "⚡ NEXUS CORE (Engineering)": {
         "Data & Security": ["01. Normalizzazione Dati (CSV)", "02. Sicurezza Ambientale (.env)", "03. Compilatore Telegram Scraper"],
@@ -186,9 +196,7 @@ ECOSYSTEMS = {
         "Business Strategy": ["06. Interactive Cloud Audit", "07. Simulatore ROI Finanziario"]
     },
     "🔒 NEXUS VAULT (Intelligence)": {
-        "Archivi Segreti": ["01. Database AI & SaaS (Top 50)"],
-        "Modelli Operativi": ["02. Prompt Engineering (Prossimamente)"],
-        "Casi Studio": ["03. Casi Studio B2B (Prossimamente)"]
+        "Database & Archivi": ["01. AI & SaaS Toolkit (Top 50)"]
     }
 }
 
@@ -320,7 +328,7 @@ elif selected_tool == "04. Router Notifiche Asincrono":
     source_py = """from fastapi import FastAPI, Request\napp = FastAPI()\n\n@app.post("/webhook")\nasync def route_traffic(req: Request):\n    payload = await req.json()\n    if payload.get("priority") == "CRITICAL":\n        return trigger_sms_alert()\n    return log_silently_to_db()"""
     render_page_header(
         "ALGORITHMS", "Router Notifiche Asincrono",
-        "Il traffico incontrollato di notifiche e alert paralizza il tuo team. Simula un evento inviando questo JSON: l'algoritmo lo analizzerà. Se rileva un blocco critico (es. 'CRITICAL'), simula l'inoltro di un SMS immediato. Se è un falso allarme o spam, lo archivia in silenzio nel database senza disturbare la produzione.",
+        "L'overload informativo paralizza il management. Incolla i dati di un evento di sistema (es. server down). L'algoritmo valuterà autonomamente l'urgenza. Se critico, inoltra un SMS al management. Se inutile, lo silenzia e lo archivia in database per non distrarre il team.",
         "Simulazione Endpoint REST in ricezione. Parsing asincrono del payload JSON. Switch logico interno sulla chiave 'priority' (Event-Driven Architecture) con tempo di esecuzione O(1).",
         source_py
     )
@@ -342,6 +350,7 @@ elif selected_tool == "04. Router Notifiche Asincrono":
                     data["nexus_action"] = "SILENT_DB_LOG"
                     msg = f"<span class='sys-log'>[{sys_time()}] [SILENT] Priorità Bassa. Rumore soppresso e archiviato per audit futuro.</span>"
                 
+                # Sanitizzazione del JSON per il rendering HTML
                 json_str = json.dumps(data, indent=2)
                 formatted_json = json_str.replace('\n', '<br>').replace('  ', '&nbsp;&nbsp;')
                 
@@ -358,7 +367,7 @@ elif selected_tool == "05. Integrazione API (Sandbox)":
     source_py = """import requests\nimport json\n\ndef inject_payload(url, data_dict):\n    headers = {'Content-Type': 'application/json'}\n    response = requests.post(url, json=data_dict, headers=headers, timeout=5)\n    return response.status_code, response.elapsed.total_seconds()"""
     render_page_header(
         "NETWORK OPS", "Integrazione API (Sandbox)",
-        "Garantisci l'integrità dei flussi aziendali. Inserisci l'URL del tuo Webhook e invia un pacchetto dati di prova. Il sistema simulerà un ping HTTP, misurerà la latenza di rete e verificherà che l'informazione sia giunta intatta a destinazione senza perdita di dati.",
+        "Garantisci l'integrità dei flussi aziendali. Inserisci l'URL di destinazione (es. Webhook Make.com) e invia un pacchetto dati di prova. Il sistema simulerà un ping HTTP, misurerà la latenza di rete e verificherà che l'informazione sia giunta intatta a destinazione.",
         "Esecuzione modulo <code>requests.post</code> nativo. Handshake TCP/TLS asincrono verso endpoint remoto. Misurazione telemetrica della latenza in millisecondi e validazione HTTP Status Code.",
         source_py
     )
@@ -376,6 +385,7 @@ elif selected_tool == "05. Integrazione API (Sandbox)":
             res = requests.post(url, json=p_json, timeout=5)
             lat = round(time.time() - t0, 3)
             
+            # Sanitizzazione testo risposta del server per HTML
             safe_res = res.text[:250].replace('\n', '<br>').replace('  ', '&nbsp;&nbsp;')
             
             st.session_state.sys_logs += f"<br><span style='color:#10B981'>[{sys_time()}] [SUCCESS] Transazione validata. Connessione intatta.</span><br>HTTP CODE: {res.status_code}<br>LATENZA TCP: {lat}s<br><br><span class='sys-log'>[RAW SERVER RESPONSE]</span><br>{safe_res}..."
@@ -388,7 +398,7 @@ elif selected_tool == "05. Integrazione API (Sandbox)":
         st.markdown(f"<div class='cmd-window'>{st.session_state.sys_logs}</div>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
-# --- 06. COST MATRIX ---
+# --- 06. INTERACTIVE CLOUD AUDIT ---
 elif selected_tool == "06. Interactive Cloud Audit":
     source_py = """# Algoritmo dinamico per l'abbattimento dell'OPEX
 def calculate_burn_rate(legacy_stack):
@@ -511,78 +521,66 @@ elif selected_tool == "07. Simulatore ROI Finanziario":
 # ==========================================
 elif selected_workspace == "🔒 NEXUS VAULT (Intelligence)":
     
-    # Se il tool attivo è "Archivio Segreto"
-    if selected_tool == "01. Database AI & SaaS (Top 50)":
-        render_vault_header(
-            "DATA INTELLIGENCE", "Archivio AI & SaaS (Top 50)",
-            "Perché bruciare centinaia di ore in ricerca e sviluppo e migliaia di euro in licenze software quando il lavoro è già stato fatto? Esplora il database privato delle architetture SaaS e Intelligenze Artificiali gratuite usate dai top player mondiali per automatizzare la propria azienda a costo zero."
-        )
-        
-        st.markdown("<div class='nexus-card'>", unsafe_allow_html=True)
-        
-        # IMPORTAZIONE DEL DATABASE REALE
-        try:
-            df_vault = pd.read_csv("nexus_ai_toolkit.csv")
-        except FileNotFoundError:
-            st.error("Il file 'nexus_ai_toolkit.csv' non è presente nel server. Caricalo nella stessa cartella di GitHub.")
-            df_vault = pd.DataFrame(columns=["Tecnologia", "Software", "Licenza", "Vantaggio Strategico"])
-        
-        search = st.text_input("🔍 Ricerca rapida nel database (es. Automazione, Hosting, AI, Cloud)...")
-        if search and not df_vault.empty:
-            df_vault = df_vault[df_vault.apply(lambda r: r.astype(str).str.contains(search, case=False).any(), axis=1)]
-        
-        # PAYWALL DATI: Mostra solo 3 righe se non sbloccato
-        display_df = df_vault if st.session_state.vault_clearance else df_vault.head(3)
-        
-        if not df_vault.empty:
-            st.dataframe(display_df, use_container_width=True, hide_index=True)
-        
-        if not st.session_state.vault_clearance:
-            st.markdown("<div style='text-align:center; padding:1.5rem 1rem; color:#71717A; font-size:0.85rem; border-top:1px dashed #27272A; margin-bottom:2rem;'>[ RISORSE LIMITATE A SCHERMO. ALTRI 47 RECORD OSCURATI. ]</div>", unsafe_allow_html=True)
-            
-            # FORM LEAD GEN
-            st.markdown("<div style='border: 1px solid #27272A; border-radius: 8px; padding: 2rem; background: #050505;'>", unsafe_allow_html=True)
-            st.markdown("<h3 style='margin-top:0; color:#FAFAFA !important;'>Sblocca il Database Integrale</h3>", unsafe_allow_html=True)
-            st.write("Inserisci la tua email per sbloccare immediatamente a schermo il resto della tabella e scaricare l'archivio.")
-            
-            with st.form("clearance_form", clear_on_submit=False):
-                email = st.text_input("Indirizzo Email per lo sblocco:", placeholder="nome@email.com", label_visibility="collapsed")
-                submit = st.form_submit_button("SBLOCCA E SCARICA L'ARCHIVIO", use_container_width=True)
-                st.markdown("<div style='text-align:center; margin-top:0.5rem; font-size:0.8rem; color:#A1A1AA;'>🔒 Nessun costo. Nessuno spam. Ricevi il file CSV direttamente in inbox.</div>", unsafe_allow_html=True)
-                
-                if submit:
-                    if len(email) > 5 and "@" in email and "." in email.split("@")[-1]:
-                        # LOGICA DI INVIO AL CRM
-                        MAKE_WEBHOOK_URL = "INSERISCI_QUI_IL_TUO_LINK_MAKE_COM"
-                        try:
-                            if MAKE_WEBHOOK_URL != "INSERISCI_QUI_IL_TUO_LINK_MAKE_COM":
-                                requests.post(MAKE_WEBHOOK_URL, json={"email": email, "source": "Nexus_Vault"}, timeout=3)
-                        except:
-                            pass
-                        
-                        bar = st.progress(0)
-                        for i in range(100):
-                            time.sleep(0.005)
-                            bar.progress(i + 1)
-                        st.session_state.vault_clearance = True
-                        st.rerun()
-                    else:
-                        st.error("[ERROR] L'indirizzo inserito non è valido. Verifica la sintassi e riprova.")
-            st.markdown("</div>", unsafe_allow_html=True)
-            
-        else:
-            st.markdown("<div style='border: 1px solid #10B981; border-radius: 8px; padding: 2rem; background: rgba(16,185,129,0.05); text-align:center; margin-top:2rem;'>", unsafe_allow_html=True)
-            st.markdown("<h3 style='color:#10B981 !important; margin-bottom:1rem;'>✅ Accesso Sbloccato con Successo</h3>", unsafe_allow_html=True)
-            st.write("L'archivio integrale è ora visibile a schermo. Clicca il pulsante qui sotto per salvare il file CSV sul tuo computer.")
-            if not df_vault.empty:
-                st.download_button("📥 DOWNLOAD DATABASE (.CSV)", df_vault.to_csv(index=False).encode('utf-8-sig'), "nexus_tech_vault.csv", "text/csv")
-            st.markdown("</div>", unsafe_allow_html=True)
-            
-        st.markdown("</div>", unsafe_allow_html=True)
+    render_vault_header(
+        "DATA INTELLIGENCE", "Archivio AI & SaaS (Top 50)",
+        "Perché bruciare centinaia di ore in ricerca e sviluppo e migliaia di euro in licenze software quando il lavoro è già stato fatto? Esplora il database privato delle architetture SaaS e Intelligenze Artificiali gratuite usate dai top player mondiali per automatizzare la propria azienda a costo zero."
+    )
     
-    # Moduli Futuri (Placeholder per scalabilità)
-    else:
-        st.markdown("<div class='nexus-card' style='text-align:center; padding: 5rem 2rem;'>", unsafe_allow_html=True)
-        st.markdown("<h2 style='color:#71717A !important;'>[ MODULO IN FASE DI SVILUPPO ]</h2>", unsafe_allow_html=True)
-        st.markdown("<p>Questo componente dell'infrastruttura verrà rilasciato nella prossima Build di sistema.</p>", unsafe_allow_html=True)
+    st.markdown("<div class='nexus-card'>", unsafe_allow_html=True)
+    
+    try:
+        df_vault = pd.read_csv("nexus_ai_toolkit.csv")
+    except FileNotFoundError:
+        st.error("Il file 'nexus_ai_toolkit.csv' non è presente nel server. Caricalo nella stessa cartella di GitHub.")
+        df_vault = pd.DataFrame(columns=["Tecnologia", "Software", "Licenza", "Vantaggio Strategico"])
+    
+    search = st.text_input("🔍 Ricerca rapida nel database (es. Automazione, Hosting, AI, Cloud)...")
+    if search and not df_vault.empty:
+        df_vault = df_vault[df_vault.apply(lambda r: r.astype(str).str.contains(search, case=False).any(), axis=1)]
+    
+    # PAYWALL DATI: Mostra solo 3 righe se non sbloccato
+    display_df = df_vault if st.session_state.vault_clearance else df_vault.head(3)
+    
+    if not df_vault.empty:
+        st.dataframe(display_df, use_container_width=True, hide_index=True)
+    
+    if not st.session_state.vault_clearance:
+        st.markdown("<div style='text-align:center; padding:1.5rem 1rem; color:#71717A; font-size:0.85rem; border-top:1px dashed #27272A; margin-bottom:2rem;'>[ RISORSE LIMITATE A SCHERMO. ALTRI 47 RECORD OSCURATI. ]</div>", unsafe_allow_html=True)
+        
+        st.markdown("<div style='border: 1px solid #27272A; border-radius: 8px; padding: 2rem; background: #050505;'>", unsafe_allow_html=True)
+        st.markdown("<h3 style='margin-top:0; color:#FAFAFA !important;'>Sblocca il Database Integrale</h3>", unsafe_allow_html=True)
+        st.write("Dove ti inviamo il link per l'accesso e il download del database completo (formato CSV)? Inserisci il tuo indirizzo email qui sotto per ricevere l'accesso alle 47 risorse oscurate.")
+        
+        with st.form("clearance_form", clear_on_submit=False):
+            email = st.text_input("Indirizzo Email per la consegna:", placeholder="nome@email.com", label_visibility="collapsed")
+            submit = st.form_submit_button("SBLOCCA E INVIA AL MIO INDIRIZZO", use_container_width=True)
+            st.markdown("<div style='text-align:center; margin-top:0.5rem; font-size:0.8rem; color:#A1A1AA;'>🔒 Nessun costo. Nessuno spam. Ricevi il file CSV direttamente in inbox.</div>", unsafe_allow_html=True)
+            
+            if submit:
+                if len(email) > 5 and "@" in email and "." in email.split("@")[-1]:
+                    MAKE_WEBHOOK_URL = "INSERISCI_QUI_IL_TUO_LINK_MAKE_COM"
+                    try:
+                        if MAKE_WEBHOOK_URL != "INSERISCI_QUI_IL_TUO_LINK_MAKE_COM":
+                            requests.post(MAKE_WEBHOOK_URL, json={"email": email, "source": "Nexus_Vault"}, timeout=3)
+                    except:
+                        pass
+                    
+                    bar = st.progress(0)
+                    for i in range(100):
+                        time.sleep(0.005)
+                        bar.progress(i + 1)
+                    st.session_state.vault_clearance = True
+                    st.rerun()
+                else:
+                    st.error("[ERROR] L'indirizzo inserito non è valido. Verifica la sintassi e riprova.")
         st.markdown("</div>", unsafe_allow_html=True)
+        
+    else:
+        st.markdown("<div style='border: 1px solid #10B981; border-radius: 8px; padding: 2rem; background: rgba(16,185,129,0.05); text-align:center; margin-top:2rem;'>", unsafe_allow_html=True)
+        st.markdown("<h3 style='color:#10B981 !important; margin-bottom:1rem;'>✅ Accesso Sbloccato con Successo</h3>", unsafe_allow_html=True)
+        st.write("L'archivio integrale è ora visibile a schermo. Clicca il pulsante qui sotto per salvare il file CSV sul tuo computer.")
+        if not df_vault.empty:
+            st.download_button("📥 DOWNLOAD DATABASE (.CSV)", df_vault.to_csv(index=False).encode('utf-8-sig'), "nexus_tech_vault.csv", "text/csv")
+        st.markdown("</div>", unsafe_allow_html=True)
+        
+    st.markdown("</div>", unsafe_allow_html=True)
