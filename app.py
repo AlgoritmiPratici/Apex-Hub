@@ -551,28 +551,38 @@ elif selected_workspace == "🔒 NEXUS VAULT (Intelligence)":
         st.markdown("<h3 style='margin-top:0; color:#FAFAFA !important;'>Sblocca il Database Integrale</h3>", unsafe_allow_html=True)
         st.write("Dove ti inviamo il link per l'accesso e il download del database completo (formato CSV)? Inserisci il tuo indirizzo email qui sotto per ricevere l'accesso alle 47 risorse oscurate.")
         
-        with st.form("clearance_form", clear_on_submit=False):
-            email = st.text_input("Indirizzo Email per la consegna:", placeholder="nome@email.com", label_visibility="collapsed")
-            submit = st.form_submit_button("SBLOCCA E INVIA AL MIO INDIRIZZO", use_container_width=True)
-            st.markdown("<div style='text-align:center; margin-top:0.5rem; font-size:0.8rem; color:#A1A1AA;'>🔒 Nessun costo. Nessuno spam. Ricevi il file CSV direttamente in inbox.</div>", unsafe_allow_html=True)
-            
-            if submit:
-                if len(email) > 5 and "@" in email and "." in email.split("@")[-1]:
-                    MAKE_WEBHOOK_URL = "INSERISCI_QUI_IL_TUO_LINK_MAKE_COM"
-                    try:
-                        if MAKE_WEBHOOK_URL != "INSERISCI_QUI_IL_TUO_LINK_MAKE_COM":
-                            requests.post(MAKE_WEBHOOK_URL, json={"email": email, "source": "Nexus_Vault"}, timeout=3)
-                    except:
-                        pass
-                    
-                    bar = st.progress(0)
-                    for i in range(100):
-                        time.sleep(0.005)
-                        bar.progress(i + 1)
-                    st.session_state.vault_clearance = True
-                    st.rerun()
-                else:
-                    st.error("[ERROR] L'indirizzo inserito non è valido. Verifica la sintassi e riprova.")
+        # --- INIZIO MOTORE GDPR / GATEWAY SBLOCCO ---
+        email = st.text_input("Indirizzo Email per la consegna:", placeholder="nome@email.com", label_visibility="collapsed")
+        
+        # 👉 INSERISCI QUI IL TUO LINK IUBENDA:
+        LINK_IUBENDA = "https://www.iubenda.com/privacy-policy/12345678"
+        
+        privacy_text = f"Accetto la [Privacy Policy]({LINK_IUBENDA}) e acconsento al trattamento dei dati."
+        privacy_accepted = st.checkbox(privacy_text, value=False)
+        
+        submit = st.button("SBLOCCA E INVIA AL MIO INDIRIZZO", use_container_width=True)
+        st.markdown("<div style='text-align:center; margin-top:0.5rem; font-size:0.8rem; color:#A1A1AA;'>🔒 Nessun costo. Nessuno spam. Ricevi il file CSV direttamente in inbox.</div>", unsafe_allow_html=True)
+        
+        if submit:
+            if not email or "@" not in email or "." not in email:
+                st.error("⚠️ [ERROR] L'indirizzo inserito non è valido. Verifica la sintassi e riprova.")
+            elif not privacy_accepted:
+                st.error("⚠️ [ERROR COMPLIANCE] Devi spuntare la casella e accettare la Privacy Policy per procedere.")
+            else:
+                MAKE_WEBHOOK_URL = "INSERISCI_QUI_IL_TUO_LINK_MAKE_COM"
+                try:
+                    if MAKE_WEBHOOK_URL != "INSERISCI_QUI_IL_TUO_LINK_MAKE_COM":
+                        requests.post(MAKE_WEBHOOK_URL, json={"email": email, "source": "Nexus_Vault"}, timeout=3)
+                except Exception as e:
+                    pass
+                
+                bar = st.progress(0)
+                for i in range(100):
+                    time.sleep(0.005)
+                    bar.progress(i + 1)
+                st.session_state.vault_clearance = True
+                st.rerun()
+        # --- FINE MOTORE GDPR ---
         st.markdown("</div>", unsafe_allow_html=True)
         
     else:
