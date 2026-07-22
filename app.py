@@ -575,7 +575,6 @@ elif selected_workspace == "🔒 NEXUS VAULT (Intelligence)":
             else:
                 MAKE_WEBHOOK_URL = "https://hook.eu1.make.com/2zaf1zhfh64nm5gefdehqhjpjvr9lwn1"
                 try:
-                    if MAKE_WEBHOOK_URL != "https://hook.eu1.make.com/2zaf1zhfh64nm5gefdehqhjpjvr9lwn1":
                         requests.post(MAKE_WEBHOOK_URL, json={"email": email, "source": "Nexus_Vault"}, timeout=3)
                 except Exception as e:
                     pass
