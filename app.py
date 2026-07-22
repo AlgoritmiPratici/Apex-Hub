@@ -573,9 +573,9 @@ elif selected_workspace == "🔒 NEXUS VAULT (Intelligence)":
             elif not privacy_accepted:
                 st.error("⚠️ [ERROR COMPLIANCE] Devi spuntare la casella e accettare la Privacy Policy per procedere.")
             else:
-                MAKE_WEBHOOK_URL = "INSERISCI_QUI_IL_TUO_LINK_MAKE_COM"
+                MAKE_WEBHOOK_URL = "https://hook.eu1.make.com/2zaf1zhfh64nm5gefdehqhjpjvr9lwn1"
                 try:
-                    if MAKE_WEBHOOK_URL != "INSERISCI_QUI_IL_TUO_LINK_MAKE_COM":
+                    if MAKE_WEBHOOK_URL != "https://hook.eu1.make.com/2zaf1zhfh64nm5gefdehqhjpjvr9lwn1":
                         requests.post(MAKE_WEBHOOK_URL, json={"email": email, "source": "Nexus_Vault"}, timeout=3)
                 except Exception as e:
                     pass
