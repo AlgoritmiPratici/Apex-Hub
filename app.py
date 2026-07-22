@@ -91,7 +91,7 @@ st.markdown("""
     .cmd-window {
         background-color: #000000; border: 1px solid #18181B; border-radius: 6px;
         padding: 1.5rem; font-family: 'SFMono-Regular', Consolas, Menlo, monospace;
-        color: #34D399; font-size: 0.85rem; line-height: 1.6; 
+        color: #34D399; font-size: 0.85rem; line-height: 1.6;
         white-space: pre-wrap; word-wrap: break-word; overflow-x: hidden;
         box-shadow: inset 0 2px 15px rgba(0,0,0,0.9); margin-top: 1rem;
     }
@@ -554,11 +554,15 @@ elif selected_workspace == "🔒 NEXUS VAULT (Intelligence)":
         # --- INIZIO MOTORE GDPR / GATEWAY SBLOCCO ---
         email = st.text_input("Indirizzo Email per la consegna:", placeholder="nome@email.com", label_visibility="collapsed")
         
-        # 👉 INSERISCI QUI IL TUO LINK IUBENDA:
+        # 👉 INSERISCI QUI IL TUO LINK IUBENDA / NOTION:
         LINK_IUBENDA = "https://app.notion.com/p/Informativa-sulla-Privacy-3a5ff5ea717c80bba083f260e8e14b41"
         
-        privacy_text = f"Accetto la [Privacy Policy]({LINK_IUBENDA}) e acconsento al trattamento dei dati."
-        privacy_accepted = st.checkbox(privacy_text, value=False)
+        # TRUCCO ARCHITETTURALE: Isoliamo il clic del checkbox da quello del link
+        col_cb, col_text = st.columns([0.05, 0.95])
+        with col_cb:
+            privacy_accepted = st.checkbox("", value=False, label_visibility="collapsed")
+        with col_text:
+            st.markdown(f"<p style='margin-top: 0.25rem; font-size: 0.9rem; color: #A1A1AA;'>Accetto la <a href='{LINK_IUBENDA}' target='_blank' style='color: #10B981; text-decoration: underline;'>Privacy Policy</a> e acconsento al trattamento dei dati.</p>", unsafe_allow_html=True)
         
         submit = st.button("SBLOCCA E INVIA AL MIO INDIRIZZO", use_container_width=True)
         st.markdown("<div style='text-align:center; margin-top:0.5rem; font-size:0.8rem; color:#A1A1AA;'>🔒 Nessun costo. Nessuno spam. Ricevi il file CSV direttamente in inbox.</div>", unsafe_allow_html=True)
