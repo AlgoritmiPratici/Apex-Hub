@@ -555,7 +555,7 @@ elif selected_workspace == "🔒 NEXUS VAULT (Intelligence)":
         email = st.text_input("Indirizzo Email per la consegna:", placeholder="nome@email.com", label_visibility="collapsed")
         
         # 👉 INSERISCI QUI IL TUO LINK IUBENDA:
-        LINK_IUBENDA = "https://www.iubenda.com/privacy-policy/12345678"
+        LINK_IUBENDA = "https://app.notion.com/p/Informativa-sulla-Privacy-3a5ff5ea717c80bba083f260e8e14b41"
         
         privacy_text = f"Accetto la [Privacy Policy]({LINK_IUBENDA}) e acconsento al trattamento dei dati."
         privacy_accepted = st.checkbox(privacy_text, value=False)
