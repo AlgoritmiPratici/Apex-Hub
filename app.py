@@ -21,12 +21,12 @@ st.set_page_config(
     }
 )
 
-# Inizializzazione Blindata (Zero Memory Leaks)
+# Inizializzazione Blindata e State Retention (Zero Memory Leaks)
 SYSTEM_STATES = {
     'active_tool': None,
     'm1_buffer': None,
     'sys_logs': "",
-    'vault_clearance': False,
+    'global_clearance': False, # Gatekeeper Globale (Soft Gate PLG)
     'last_workspace': None
 }
 for key, val in SYSTEM_STATES.items():
@@ -38,6 +38,10 @@ def sys_time():
     return datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
 
 param_hub = st.query_params.get("workspace", "core")
+
+# Endpoint di Integrazione
+MAKE_WEBHOOK_URL = "https://hook.eu1.make.com/2zaf1zhfh64nm5gefdehqhjpjvr9lwn1"
+LINK_IUBENDA = "https://app.notion.com/p/Informativa-sulla-Privacy-3a5ff5ea717c80bba083f260e8e14b41"
 
 # ==========================================
 # 2. VERCEL/LINEAR PREMIUM CSS ENGINE
@@ -96,6 +100,16 @@ st.markdown("""
         box-shadow: inset 0 2px 15px rgba(0,0,0,0.9); margin-top: 1rem;
     }
     .err-log { color: #EF4444; } .sys-log { color: #71717A; } .warn-log { color: #F59E0B; } .acc-log { color: #38BDF8; }
+    
+    /* Box Affiliazione (Cavallo di Troia) */
+    .affiliate-box { 
+        background: rgba(59, 130, 246, 0.05); border-left: 3px solid #3B82F6; 
+        padding: 1.2rem; border-radius: 0 6px 6px 0; margin-bottom: 1.5rem;
+    }
+    .affiliate-box h4 { 
+        color: #3B82F6; margin-top: 0; font-size: 0.85rem; text-transform: uppercase; 
+        letter-spacing: 1px; font-weight: 800;
+    }
     
     /* Pulsanti Elite Edge-to-Edge */
     div.stButton > button {
@@ -156,7 +170,7 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # ==========================================
-# 3. HELPER UX: HEADER ENTERPRISE
+# 3. HELPER UX & LOGIC ENGINES
 # ==========================================
 def render_page_header(badge, title, use_case, tech_spec, python_code=None):
     """Interfaccia Bipolare: Impatto per i Manager, Architettura e Codice per i CTO."""
@@ -178,6 +192,49 @@ def render_vault_header(badge, title, desc):
     st.markdown(f"<div class='status-badge'>{badge}</div>", unsafe_allow_html=True)
     st.markdown(f"<h1>{title}</h1>", unsafe_allow_html=True)
     st.markdown(f"<div style='padding: 0.5rem 0; margin-bottom: 1.5rem;'><p style='color:#F4F4F5; font-size:1.05rem;'>{desc}</p></div>", unsafe_allow_html=True)
+
+def render_affiliate_box(title, text, link_url, link_text):
+    """Motore UI per la strategia del Cavallo di Troia (Affiliazioni B2B)"""
+    st.markdown(f"""
+        <div class='affiliate-box'>
+            <h4>⚙️ POTENZIAMENTO INFRASTRUTTURA: {title}</h4>
+            <p style='color: #A1A1AA; font-size: 0.9rem; margin-bottom: 0.5rem;'>{text}</p>
+            <a href='{link_url}' target='_blank' style='color: #3B82F6; font-weight: 700; text-decoration: none; font-size: 0.85rem;'>{link_text} ↗</a>
+        </div>
+    """, unsafe_allow_html=True)
+
+def lead_capture_gateway(module_id, action_text="Download Risultati"):
+    """Soft Gate PLG: Chiede la mail bloccando solo l'output finale."""
+    if st.session_state.global_clearance:
+        return True # Sistema sbloccato
+    
+    st.markdown("<div style='border: 1px solid #27272A; border-radius: 8px; padding: 1.5rem; background: #050505; margin-top: 1rem;'>", unsafe_allow_html=True)
+    st.markdown(f"<h3 style='margin-top:0; color:#FAFAFA !important; font-size:1.2rem;'>Sblocca: {action_text}</h3>", unsafe_allow_html=True)
+    st.write("Inserisci la tua email aziendale per abilitare questa funzione e sbloccare tutto l'ecosistema Nexus Cloud. (Se sei già registrato, l'accesso è immediato).")
+    
+    email = st.text_input("Email:", placeholder="nome@azienda.com", key=f"email_{module_id}", label_visibility="collapsed")
+    col_cb, col_text = st.columns([0.05, 0.95])
+    with col_cb:
+        privacy_accepted = st.checkbox("", value=False, key=f"priv_{module_id}", label_visibility="collapsed")
+    with col_text:
+        st.markdown(f"<p style='margin-top: 0.25rem; font-size: 0.85rem; color: #A1A1AA;'>Accetto la <a href='{LINK_IUBENDA}' target='_blank' style='color: #10B981; text-decoration: underline;'>Privacy Policy</a>.</p>", unsafe_allow_html=True)
+    
+    if st.button("SBLOCCA STRUMENTO E RICEVI ACCESSO", key=f"btn_{module_id}", use_container_width=True):
+        if not email or "@" not in email or "." not in email:
+            st.error("⚠️ [ERROR] Inserisci una email valida.")
+        elif not privacy_accepted:
+            st.error("⚠️ [ERROR] Devi accettare la Privacy Policy per continuare.")
+        else:
+            try:
+                requests.post(MAKE_WEBHOOK_URL, json={"email": email, "source": f"Nexus_Module_{module_id}"}, timeout=3)
+            except: pass
+            
+            # Attiva la clearance globale e forza il ricaricamento
+            st.session_state.global_clearance = True
+            st.rerun()
+            
+    st.markdown("</div>", unsafe_allow_html=True)
+    return False
 
 # ==========================================
 # 4. ROUTING TASSONOMICO (LA MATRICE MENU)
@@ -210,7 +267,7 @@ st.sidebar.markdown("<p style='font-size: 0.75rem; font-weight: 700; color: #FFF
 selected_category = st.sidebar.selectbox("Filtra per Categoria:", list(categories.keys()), label_visibility="collapsed")
 selected_tool = st.sidebar.radio("Strumenti Attivi:", categories[selected_category], label_visibility="collapsed")
 
-# Absolute Garbage Collection
+# Absolute Garbage Collection (Pulisce i log se si cambia strumento)
 if st.session_state.active_tool != selected_tool:
     st.session_state.sys_logs = ""
     st.session_state.m1_buffer = None
@@ -231,6 +288,14 @@ if selected_tool == "01. Normalizzazione Dati (CSV)":
         source_py
     )
     
+    # 👉 [LINK AFFILIAZIONE 1 - AIRTABLE]
+    render_affiliate_box(
+        "Airtable", 
+        "Pulire i CSV è solo il primo passo. Per gestire i lead e creare pipeline automatizzate senza usare codice, devi importare questi dati puliti su Airtable.", 
+        "https://airtable.com", 
+        "Apri un account gratuito su Airtable"
+    )
+    
     st.markdown("<div class='nexus-card'>", unsafe_allow_html=True)
     uploaded_file = st.file_uploader("Trascina il tuo Data Dump (.csv) qui", type=["csv"])
     
@@ -239,6 +304,7 @@ if selected_tool == "01. Normalizzazione Dati (CSV)":
             with st.spinner("Ingegnerizzazione dei dati in corso..."):
                 time.sleep(0.7)
                 try:
+                    # Gestione Avanzata Encoding (Preservata dal file originale)
                     try:
                         df_raw = pd.read_csv(uploaded_file, sep=None, engine='python', encoding='utf-8')
                     except UnicodeDecodeError:
@@ -264,8 +330,12 @@ if selected_tool == "01. Normalizzazione Dati (CSV)":
 
     if st.session_state.m1_buffer is not None:
         st.markdown(f"<div class='cmd-window'>{st.session_state.sys_logs}</div><br>", unsafe_allow_html=True)
-        st.dataframe(st.session_state.m1_buffer.head(5), use_container_width=True)
-        st.download_button("📥 SCARICA DATABASE PULITO (.CSV)", st.session_state.m1_buffer.to_csv(index=False).encode('utf-8-sig'), "nexus_data_clean.csv", "text/csv")
+        st.markdown("<p style='color:#A1A1AA; font-size:0.85rem; font-weight:600;'>ANTEPRIMA DATI PULITI (Prime 10 righe):</p>", unsafe_allow_html=True)
+        st.dataframe(st.session_state.m1_buffer.head(10), use_container_width=True)
+        
+        # Sostituzione Bottone Download Diretto con Gatekeeper PLG
+        if lead_capture_gateway("mod_01", "Download Database Pulito"):
+            st.download_button("📥 SCARICA DATABASE PULITO (.CSV)", st.session_state.m1_buffer.to_csv(index=False).encode('utf-8-sig'), "nexus_data_clean.csv", "text/csv")
     st.markdown("</div>", unsafe_allow_html=True)
 
 # --- 02. PROTOCOLLO .ENV ---
@@ -278,18 +348,30 @@ elif selected_tool == "02. Sicurezza Ambientale (.env)":
         source_py
     )
     
+    # 👉 [LINK AFFILIAZIONE 2 - DIGITALOCEAN]
+    render_affiliate_box(
+        "DigitalOcean / Render", 
+        "Una volta protetti i tuoi file di configurazione con questo script, ti serve un server aziendale sicuro dove eseguire il codice H24.", 
+        "https://digitalocean.com", 
+        "Ottieni 200$ di credito Cloud su DigitalOcean"
+    )
+    
     st.markdown("<div class='nexus-card'>", unsafe_allow_html=True)
     raw_env_str = """DATABASE_URL=postgres://admin:root123@local/db\nAPI_SECRET=sk_live_8473djds83...\nDEBUG_MODE=True"""
     env_input = st.text_area("Incolla variabili esposte (Formato Key=Value):", value=raw_env_str, height=120)
     
     if st.button("BLINDA ARCHITETTURA DI SISTEMA", type="primary"):
+        st.session_state.m1_buffer = env_input
         st.session_state.sys_logs = f"<span class='sys-log'>[{sys_time()}] [sec-ops@nexus] ~ Scansione file configurazione e moduli...</span><br><span class='warn-log'>[ALERT] Rilevate password e chiavi API esposte in chiaro.</span><br><span class='sys-log'>[{sys_time()}] [ENCRYPT] Generazione isolamento in memoria...</span><br><span style='color:#10B981'>[SUCCESS] Architettura protetta. File asettici pronti per il deployment.</span>"
         
-    if st.session_state.sys_logs != "":
+    if st.session_state.m1_buffer is not None:
         st.markdown(f"<div class='cmd-window'>{st.session_state.sys_logs}</div><br>", unsafe_allow_html=True)
-        c1, c2 = st.columns(2)
-        c1.download_button("📥 SCARICA .ENV", env_input, ".env")
-        c2.download_button("📥 SCARICA FIREWALL .GITIGNORE", ".env\n__pycache__/\n*.session\n.DS_Store", ".gitignore")
+        
+        # Gatekeeper PLG prima del Download
+        if lead_capture_gateway("mod_02", "Download Architettura .ENV"):
+            c1, c2 = st.columns(2)
+            c1.download_button("📥 SCARICA .ENV", st.session_state.m1_buffer, ".env")
+            c2.download_button("📥 SCARICA FIREWALL .GITIGNORE", ".env\n__pycache__/\n*.session\n.DS_Store", ".gitignore")
     st.markdown("</div>", unsafe_allow_html=True)
 
 # --- 03. COMPILATORE TELEGRAM ---
@@ -300,6 +382,14 @@ elif selected_tool == "03. Compilatore Telegram Scraper":
         "Genera un software personalizzato per estrarre migliaia di lead dai gruppi concorrenti. Poiché estrarre dati tramite Cloud genera un Ban immediato dell'account Telegram, inserisci i tuoi parametri qui. Compileremo un software Python sicuro che potrai scaricare ed avviare in totale privacy direttamente dal tuo computer.",
         "Generazione programmatica di script Python (libreria Telethon asincrona). L'eseguibile forza l'architettura client-side (localhost) per bypassare i filtri anti-bot IP cloud.",
         source_py
+    )
+    
+    # 👉 [LINK AFFILIAZIONE 3 - SMARTPROXY]
+    render_affiliate_box(
+        "Smartproxy", 
+        "Se esegui scraping in locale per più di 10 gruppi, Telegram bannerà il tuo IP aziendale. Ti servono Proxy Residenziali a rotazione.", 
+        "https://smartproxy.com", 
+        "Proteggi il tuo IP registrandoti a Smartproxy"
     )
     
     st.markdown("<div class='nexus-card'>", unsafe_allow_html=True)
@@ -320,7 +410,10 @@ elif selected_tool == "03. Compilatore Telegram Scraper":
     if st.session_state.sys_logs != "":
         st.markdown(f"<div class='cmd-window'>{st.session_state.sys_logs}</div><br>", unsafe_allow_html=True)
         if st.session_state.m1_buffer:
-            st.download_button("📥 SCARICA SCRIPT PYTHON (.PY)", st.session_state.m1_buffer, "nexus_telegram_engine.py")
+            
+            # Gatekeeper PLG prima del Download Executable
+            if lead_capture_gateway("mod_03", "Software Client Python"):
+                st.download_button("📥 SCARICA SCRIPT PYTHON (.PY)", st.session_state.m1_buffer, "nexus_telegram_engine.py")
     st.markdown("</div>", unsafe_allow_html=True)
 
 # --- 04. ROUTER NOTIFICHE ---
@@ -333,6 +426,14 @@ elif selected_tool == "04. Router Notifiche Asincrono":
         source_py
     )
     
+    # 👉 [LINK AFFILIAZIONE 4 - MAKE.COM]
+    render_affiliate_box(
+        "Make.com (Integromat)", 
+        "Perché usare script manuali scritti in Python quando Make.com può fare questo routing logico visualmente in 2 minuti senza scrivere una riga di codice?", 
+        "https://make.com", 
+        "Crea un account gratuito su Make.com"
+    )
+    
     st.markdown("<div class='nexus-card'>", unsafe_allow_html=True)
     json_test = """{\n  "source": "server_monitor",\n  "error_code": "502_bad_gateway",\n  "priority": "CRITICAL"\n}"""
     json_in = st.text_area("Payload Evento in Ingresso (JSON):", value=json_test, height=140)
@@ -342,6 +443,21 @@ elif selected_tool == "04. Router Notifiche Asincrono":
             time.sleep(0.5)
             try:
                 data = json.loads(json_in)
+                st.session_state.m1_buffer = data
+                st.session_state.sys_logs = f"<span class='sys-log'>[{sys_time()}] Routing Engine Eseguito. Dati elaborati con successo.</span>"
+            except json.JSONDecodeError as e:
+                st.session_state.sys_logs = f"<span class='err-log'>[{sys_time()}] [FATAL ERROR] Payload JSON corrotto o malformato. Syntax Error: {e}</span>"
+                st.session_state.m1_buffer = None
+                
+    if st.session_state.sys_logs != "":
+        # Mostra log di elaborazione iniziale
+        if not st.session_state.global_clearance:
+             st.markdown(f"<div class='cmd-window'>{st.session_state.sys_logs}</div>", unsafe_allow_html=True)
+             
+        if st.session_state.m1_buffer:
+            # Gatekeeper PLG prima di mostrare il risultato della logica JSON
+            if lead_capture_gateway("mod_04", "Risultato Architettura Routing"):
+                data = st.session_state.m1_buffer
                 prio = str(data.get("priority", "LOW")).upper()
                 if prio in ["HIGH", "CRITICAL"]:
                     data["nexus_action"] = "FORWARD_TO_CTO_SMS"
@@ -350,16 +466,10 @@ elif selected_tool == "04. Router Notifiche Asincrono":
                     data["nexus_action"] = "SILENT_DB_LOG"
                     msg = f"<span class='sys-log'>[{sys_time()}] [SILENT] Priorità Bassa. Rumore soppresso e archiviato per audit futuro.</span>"
                 
-                # Sanitizzazione del JSON per il rendering HTML
                 json_str = json.dumps(data, indent=2)
                 formatted_json = json_str.replace('\n', '<br>').replace('  ', '&nbsp;&nbsp;')
                 
-                st.session_state.sys_logs = f"{msg}<br><br><span class='acc-log'>[PAYLOAD TRASFORMATO]:</span><br>{formatted_json}"
-            except json.JSONDecodeError as e:
-                st.session_state.sys_logs = f"<span class='err-log'>[{sys_time()}] [FATAL ERROR] Payload JSON corrotto o malformato. Syntax Error: {e}</span>"
-                
-    if st.session_state.sys_logs != "":
-        st.markdown(f"<div class='cmd-window'>{st.session_state.sys_logs}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='cmd-window'>{msg}<br><br><span class='acc-log'>[PAYLOAD TRASFORMATO E DECISIONE PRESA]:</span><br>{formatted_json}</div>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
 # --- 05. API INJECTOR ---
@@ -370,6 +480,14 @@ elif selected_tool == "05. Integrazione API (Sandbox)":
         "Garantisci l'integrità dei flussi aziendali. Inserisci l'URL di destinazione (es. Webhook Make.com) e invia un pacchetto dati di prova. Il sistema simulerà un ping HTTP, misurerà la latenza di rete e verificherà che l'informazione sia giunta intatta a destinazione.",
         "Esecuzione modulo <code>requests.post</code> nativo. Handshake TCP/TLS asincrono verso endpoint remoto. Misurazione telemetrica della latenza in millisecondi e validazione HTTP Status Code.",
         source_py
+    )
+    
+    # 👉 [LINK AFFILIAZIONE 5 - MAKE.COM API]
+    render_affiliate_box(
+        "Make.com (Integromat)", 
+        "Cattura i dati inviati da questo simulatore API usando un Webhook Custom su Make.com per costruire la tua automazione.", 
+        "https://make.com", 
+        "Attiva il tuo primo Webhook su Make.com"
     )
     
     st.markdown("<div class='nexus-card'>", unsafe_allow_html=True)
@@ -385,17 +503,27 @@ elif selected_tool == "05. Integrazione API (Sandbox)":
             res = requests.post(url, json=p_json, timeout=5)
             lat = round(time.time() - t0, 3)
             
-            # Sanitizzazione testo risposta del server per HTML
-            safe_res = res.text[:250].replace('\n', '<br>').replace('  ', '&nbsp;&nbsp;')
-            
-            st.session_state.sys_logs += f"<br><span style='color:#10B981'>[{sys_time()}] [SUCCESS] Transazione validata. Connessione intatta.</span><br>HTTP CODE: {res.status_code}<br>LATENZA TCP: {lat}s<br><br><span class='sys-log'>[RAW SERVER RESPONSE]</span><br>{safe_res}..."
+            st.session_state.m1_buffer = {"res_text": res.text[:250], "status": res.status_code, "lat": lat}
+            st.session_state.sys_logs += f"<br><span style='color:#10B981'>[{sys_time()}] [SUCCESS] Transazione completata. Rete validata.</span>"
         except json.JSONDecodeError:
-            st.session_state.sys_logs += f"<br><span class='err-log'>[{sys_time()}] [ERROR] Formattazione JSON invalida. Il carico utile è stato respinto dal sistema prima dell'invio.</span>"
+            st.session_state.sys_logs += f"<br><span class='err-log'>[{sys_time()}] [ERROR] Formattazione JSON invalida. Il carico utile è stato respinto.</span>"
+            st.session_state.m1_buffer = None
         except Exception as e:
             st.session_state.sys_logs += f"<br><span class='err-log'>[{sys_time()}] [TIMEOUT FATAL] Endpoint irraggiungibile o barriera firewall attiva. Dettagli: {e}</span>"
+            st.session_state.m1_buffer = None
             
     if st.session_state.sys_logs != "":
-        st.markdown(f"<div class='cmd-window'>{st.session_state.sys_logs}</div>", unsafe_allow_html=True)
+        # Mostra Log negoziazione base
+        if not st.session_state.global_clearance:
+            st.markdown(f"<div class='cmd-window'>{st.session_state.sys_logs}</div>", unsafe_allow_html=True)
+            
+        if st.session_state.m1_buffer:
+            # Gatekeeper PLG prima di mostrare latenza e response body del server remoto
+            if lead_capture_gateway("mod_05", "Rapporto di Diagnostica di Rete"):
+                data = st.session_state.m1_buffer
+                safe_res = data['res_text'].replace('\n', '<br>').replace('  ', '&nbsp;&nbsp;')
+                full_log = st.session_state.sys_logs + f"<br>HTTP CODE: {data['status']}<br>LATENZA TCP: {data['lat']}s<br><br><span class='sys-log'>[RAW SERVER RESPONSE]</span><br>{safe_res}..."
+                st.markdown(f"<div class='cmd-window'>{full_log}</div>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
 # --- 06. INTERACTIVE CLOUD AUDIT ---
@@ -410,6 +538,14 @@ def calculate_burn_rate(legacy_stack):
         "Le aziende italiane bruciano decine di migliaia di euro ogni anno in abbonamenti software (SaaS) monolitici e costosi. Esegui un Audit interattivo per la tua azienda: seleziona i software che stai pagando oggi. Ti mostreremo istantaneamente quanti soldi stai perdendo e l'esatta alternativa (Open Source o Serverless) per azzerare le spese mensili.",
         "Audit interattivo per il calcolo del TCO (Total Cost of Ownership). Sostituzione di servizi monolitici legacy con architetture distribuite Open Source e Cloud Serverless ad alte prestazioni.",
         source_py
+    )
+    
+    # 👉 [LINK AFFILIAZIONE 6 - HETZNER]
+    render_affiliate_box(
+        "Hetzner", 
+        "Sostituire software da 200€/mese con l'Open Source significa doverli ospitare su un server. Hetzner domina il mercato europeo per le VPS ad alte prestazioni ed economiche.", 
+        "https://hetzner.com", 
+        "Ottieni 20€ gratuiti sui Server Hetzner"
     )
     
     st.markdown("<div class='nexus-card'>", unsafe_allow_html=True)
@@ -439,42 +575,18 @@ def calculate_burn_rate(legacy_stack):
     burn_rate = 0
     soluzioni = []
     
-    if zapier: 
-        burn_rate += 199
-        soluzioni.append("✅ Sostituisci Automazioni con **n8n (Self-Hosted)** a costo zero. Esecuzioni illimitate.")
-    if hubspot: 
-        burn_rate += 150
-        soluzioni.append("✅ Sostituisci il CRM con **Supabase (PostgreSQL Serverless)** a costo zero.")
-    if mail: 
-        burn_rate += 80
-        soluzioni.append("✅ Sostituisci Email Marketing con **Mautic (Open Source) + AWS SES** a pochi centesimi.")
-    if funnel: 
-        burn_rate += 197
-        soluzioni.append("✅ Sostituisci ClickFunnels con **WordPress + Ghost (Headless CMS)** a costo zero.")
-    if shopify: 
-        burn_rate += 79
-        soluzioni.append("✅ Sostituisci gli abbonamenti eCommerce con **WooCommerce + Stripe**.")
-    if manychat: 
-        burn_rate += 45
-        soluzioni.append("✅ Sostituisci i Chatbot con **Typebot (Open Source)** a costo zero.")
-    if calendly: 
-        burn_rate += 30
-        soluzioni.append("✅ Sostituisci Form & Meeting con **Cal.com (Self-Hosted)** a costo zero.")
-    if zendesk: 
-        burn_rate += 150
-        soluzioni.append("✅ Sostituisci il Customer Care con **Chatwoot (Open Source)** a costo zero.")
-    if vimeo: 
-        burn_rate += 60
-        soluzioni.append("✅ Sostituisci l'Hosting Video con **Cloudflare Stream** a un decimo del costo.")
-    if airtable: 
-        burn_rate += 50
-        soluzioni.append("✅ Sostituisci i Database NoCode con **NocoDB (Open Source)** a costo zero.")
-    if typeform: 
-        burn_rate += 59
-        soluzioni.append("✅ Sostituisci la raccolta Lead con **Tally.so (Free Tier Illimitato)**.")
-    if aws: 
-        burn_rate += 45
-        soluzioni.append("✅ Sostituisci AWS S3 Storage con **Cloudflare R2** (Zero costi per il traffico in uscita/egress).")
+    if zapier: burn_rate += 199; soluzioni.append("✅ Sostituisci Automazioni con **n8n (Self-Hosted)** a costo zero. Esecuzioni illimitate.")
+    if hubspot: burn_rate += 150; soluzioni.append("✅ Sostituisci il CRM con **Supabase (PostgreSQL Serverless)** a costo zero.")
+    if mail: burn_rate += 80; soluzioni.append("✅ Sostituisci Email Marketing con **Mautic (Open Source) + AWS SES** a pochi centesimi.")
+    if funnel: burn_rate += 197; soluzioni.append("✅ Sostituisci ClickFunnels con **WordPress + Ghost (Headless CMS)** a costo zero.")
+    if shopify: burn_rate += 79; soluzioni.append("✅ Sostituisci gli abbonamenti eCommerce con **WooCommerce + Stripe**.")
+    if manychat: burn_rate += 45; soluzioni.append("✅ Sostituisci i Chatbot con **Typebot (Open Source)** a costo zero.")
+    if calendly: burn_rate += 30; soluzioni.append("✅ Sostituisci Form & Meeting con **Cal.com (Self-Hosted)** a costo zero.")
+    if zendesk: burn_rate += 150; soluzioni.append("✅ Sostituisci il Customer Care con **Chatwoot (Open Source)** a costo zero.")
+    if vimeo: burn_rate += 60; soluzioni.append("✅ Sostituisci l'Hosting Video con **Cloudflare Stream** a un decimo del costo.")
+    if airtable: burn_rate += 50; soluzioni.append("✅ Sostituisci i Database NoCode con **NocoDB (Open Source)** a costo zero.")
+    if typeform: burn_rate += 59; soluzioni.append("✅ Sostituisci la raccolta Lead con **Tally.so (Free Tier Illimitato)**.")
+    if aws: burn_rate += 45; soluzioni.append("✅ Sostituisci AWS S3 Storage con **Cloudflare R2** (Zero costi per il traffico in uscita).")
         
     st.markdown("---")
     c_res1, c_res2 = st.columns(2)
@@ -482,9 +594,11 @@ def calculate_burn_rate(legacy_stack):
     c_res2.metric("Costo Architettura NEXUS", "€ 0 / mese", f"+ € {burn_rate} Salvati al Mese", delta_color="normal")
     
     if burn_rate > 0:
-        st.markdown("<br><p style='color:#FAFAFA; font-weight:700;'>PROTOCOLLO DI MIGRAZIONE CONSIGLIATO:</p>", unsafe_allow_html=True)
-        for sol in soluzioni:
-            st.markdown(f"<p style='color:#10B981; margin:0;'>{sol}</p>", unsafe_allow_html=True)
+        # Gatekeeper PLG prima di rivelare il protocollo di migrazione esatto
+        if lead_capture_gateway("mod_06", "Protocollo di Migrazione Strategico"):
+            st.markdown("<br><p style='color:#FAFAFA; font-weight:700;'>PROTOCOLLO DI MIGRAZIONE CONSIGLIATO (SBLOCCATO):</p>", unsafe_allow_html=True)
+            for sol in soluzioni:
+                st.markdown(f"<p style='color:#10B981; margin:0;'>{sol}</p>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
 # --- 07. ROI TELEMETRY ---
@@ -497,6 +611,14 @@ elif selected_tool == "07. Simulatore ROI Finanziario":
         source_py
     )
     
+    # 👉 [LINK AFFILIAZIONE 7 - STRIPE]
+    render_affiliate_box(
+        "Stripe", 
+        "Se gestisci pagamenti B2B e abbonamenti, Stripe è l'infrastruttura di pagamento per calcolare automaticamente MRR, Churn Rate e LTV aziendale.", 
+        "https://stripe.com", 
+        "Aumenta le conversioni gestendo i flussi tramite Stripe"
+    )
+    
     st.markdown("<div class='nexus-card'>", unsafe_allow_html=True)
     c1, c2 = st.columns(2)
     mrr = c1.number_input("Fatturato Mensile Attuale (MRR) €", value=25000, step=1000)
@@ -507,12 +629,14 @@ elif selected_tool == "07. Simulatore ROI Finanziario":
     c3.metric("Utile Netto Storico", f"€ {m_old:,}")
     c4.metric("Utile Netto NEXUS", f"€ {m_new:,}", f"+ € {opex:,} (Cassa Netta Liberata)")
     
-    fig = go.Figure(data=[
-        go.Bar(name='Infrastruttura Attuale', x=['Business Model'], y=[m_old], marker_color='#27272A', text=f"€{m_old}", textposition='auto'),
-        go.Bar(name='Infrastruttura NEXUS', x=['Business Model'], y=[m_new], marker_color='#10B981', text=f"€{m_new}", textposition='auto')
-    ])
-    fig.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color='#A1A1AA', barmode='group', margin=dict(t=20, b=0, l=0, r=0))
-    st.plotly_chart(fig, use_container_width=True)
+    # Gatekeeper PLG prima di mostrare i grafici vettoriali esecutivi
+    if lead_capture_gateway("mod_07", "Analisi Grafica Vettoriale"):
+        fig = go.Figure(data=[
+            go.Bar(name='Infrastruttura Attuale', x=['Business Model'], y=[m_old], marker_color='#27272A', text=f"€{m_old}", textposition='auto'),
+            go.Bar(name='Infrastruttura NEXUS', x=['Business Model'], y=[m_new], marker_color='#10B981', text=f"€{m_new}", textposition='auto')
+        ])
+        fig.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color='#A1A1AA', barmode='group', margin=dict(t=20, b=0, l=0, r=0))
+        st.plotly_chart(fig, use_container_width=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
 
@@ -538,55 +662,17 @@ elif selected_workspace == "🔒 NEXUS VAULT (Intelligence)":
     if search and not df_vault.empty:
         df_vault = df_vault[df_vault.apply(lambda r: r.astype(str).str.contains(search, case=False).any(), axis=1)]
     
-    # PAYWALL DATI: Mostra solo 3 righe se non sbloccato
-    display_df = df_vault if st.session_state.vault_clearance else df_vault.head(3)
+    # PAYWALL DATI GLOBALE: Mostra solo 3 righe se non sbloccato dall'email
+    display_df = df_vault if st.session_state.global_clearance else df_vault.head(3)
     
     if not df_vault.empty:
         st.dataframe(display_df, use_container_width=True, hide_index=True)
     
-    if not st.session_state.vault_clearance:
+    if not st.session_state.global_clearance:
         st.markdown("<div style='text-align:center; padding:1.5rem 1rem; color:#71717A; font-size:0.85rem; border-top:1px dashed #27272A; margin-bottom:2rem;'>[ RISORSE LIMITATE A SCHERMO. ALTRI 47 RECORD OSCURATI. ]</div>", unsafe_allow_html=True)
         
-        st.markdown("<div style='border: 1px solid #27272A; border-radius: 8px; padding: 2rem; background: #050505;'>", unsafe_allow_html=True)
-        st.markdown("<h3 style='margin-top:0; color:#FAFAFA !important;'>Sblocca il Database Integrale</h3>", unsafe_allow_html=True)
-        st.write("Dove ti inviamo il link per l'accesso e il download del database completo (formato CSV)? Inserisci il tuo indirizzo email qui sotto per ricevere l'accesso alle 47 risorse oscurate.")
-        
-        # --- INIZIO MOTORE GDPR / GATEWAY SBLOCCO ---
-        email = st.text_input("Indirizzo Email per la consegna:", placeholder="nome@email.com", label_visibility="collapsed")
-        
-        # 👉 INSERISCI QUI IL TUO LINK IUBENDA / NOTION:
-        LINK_IUBENDA = "https://app.notion.com/p/Informativa-sulla-Privacy-3a5ff5ea717c80bba083f260e8e14b41"
-        
-        # TRUCCO ARCHITETTURALE: Isoliamo il clic del checkbox da quello del link
-        col_cb, col_text = st.columns([0.05, 0.95])
-        with col_cb:
-            privacy_accepted = st.checkbox("", value=False, label_visibility="collapsed")
-        with col_text:
-            st.markdown(f"<p style='margin-top: 0.25rem; font-size: 0.9rem; color: #A1A1AA;'>Accetto la <a href='{LINK_IUBENDA}' target='_blank' style='color: #10B981; text-decoration: underline;'>Privacy Policy</a> e acconsento al trattamento dei dati.</p>", unsafe_allow_html=True)
-        
-        submit = st.button("SBLOCCA E INVIA AL MIO INDIRIZZO", use_container_width=True)
-        st.markdown("<div style='text-align:center; margin-top:0.5rem; font-size:0.8rem; color:#A1A1AA;'>🔒 Nessun costo. Nessuno spam. Ricevi il file CSV direttamente in inbox.</div>", unsafe_allow_html=True)
-        
-        if submit:
-            if not email or "@" not in email or "." not in email:
-                st.error("⚠️ [ERROR] L'indirizzo inserito non è valido. Verifica la sintassi e riprova.")
-            elif not privacy_accepted:
-                st.error("⚠️ [ERROR COMPLIANCE] Devi spuntare la casella e accettare la Privacy Policy per procedere.")
-            else:
-                MAKE_WEBHOOK_URL = "https://hook.eu1.make.com/2zaf1zhfh64nm5gefdehqhjpjvr9lwn1"
-                try:
-                        requests.post(MAKE_WEBHOOK_URL, json={"email": email, "source": "Nexus_Vault"}, timeout=3)
-                except Exception as e:
-                    pass
-                
-                bar = st.progress(0)
-                for i in range(100):
-                    time.sleep(0.005)
-                    bar.progress(i + 1)
-                st.session_state.vault_clearance = True
-                st.rerun()
-        # --- FINE MOTORE GDPR ---
-        st.markdown("</div>", unsafe_allow_html=True)
+        # Riutilizzo Modulare del Soft Gate
+        lead_capture_gateway("vault_master", "Database Integrale in CSV")
         
     else:
         st.markdown("<div style='border: 1px solid #10B981; border-radius: 8px; padding: 2rem; background: rgba(16,185,129,0.05); text-align:center; margin-top:2rem;'>", unsafe_allow_html=True)
