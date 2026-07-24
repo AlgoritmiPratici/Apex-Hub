@@ -695,14 +695,13 @@ elif selected_tool == "07. Simulatore ROI Finanziario":
         ])
         fig.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color='#A1A1AA', barmode='group', margin=dict(t=20, b=0, l=0, r=0))
         st.plotly_chart(fig, use_container_width=True)
-    
-st.markdown("</div>", unsafe_allow_html=True)
-
+        
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # ==========================================
 # HUB 02: NEXUS VAULT (INTELLIGENCE)
 # ==========================================
-elif selected_workspace == "NEXUS VAULT (Intelligence)":
+elif selected_workspace == "🔒 NEXUS VAULT (Intelligence)":
     
     render_vault_header(
         "DATA INTELLIGENCE", "Archivio AI & SaaS (Top 50)",
