@@ -702,7 +702,7 @@ st.markdown("</div>", unsafe_allow_html=True)
 # ==========================================
 # HUB 02: NEXUS VAULT (INTELLIGENCE)
 # ==========================================
-elif selected_workspace == "🔒 NEXUS VAULT (Intelligence)":
+elif selected_workspace == "NEXUS VAULT (Intelligence)":
     
     render_vault_header(
         "DATA INTELLIGENCE", "Archivio AI & SaaS (Top 50)",
