@@ -4,6 +4,7 @@ import time
 import requests
 import json
 import datetime
+import os
 import plotly.express as px
 import plotly.graph_objects as go
 
@@ -27,6 +28,7 @@ SYSTEM_STATES = {
     'm1_buffer': None,
     'sys_logs': "",
     'global_clearance': False, # Gatekeeper Globale (Soft Gate PLG)
+    'just_unlocked': False,    # Trigger per il messaggio di Successo (Double Opt-In Patch)
     'last_workspace': None
 }
 for key, val in SYSTEM_STATES.items():
@@ -39,8 +41,8 @@ def sys_time():
 
 param_hub = st.query_params.get("workspace", "core")
 
-# Endpoint di Integrazione
-MAKE_WEBHOOK_URL = "https://hook.eu1.make.com/2zaf1zhfh64nm5gefdehqhjpjvr9lwn1"
+# Endpoint di Integrazione tramite Variabili d'Ambiente (Sicurezza)
+MAKE_WEBHOOK_URL = os.getenv("MAKE_WEBHOOK")
 LINK_IUBENDA = "https://app.notion.com/p/Informativa-sulla-Privacy-3a5ff5ea717c80bba083f260e8e14b41"
 
 # ==========================================
@@ -203,9 +205,59 @@ def render_affiliate_box(title, text, link_url, link_text):
         </div>
     """, unsafe_allow_html=True)
 
+def is_email_in_notion(email):
+    """Verifica se la mail esiste già nel database Notion per risparmiare crediti API e duplicati."""
+    NOTION_TOKEN = os.getenv("NOTION_TOKEN")
+    if not NOTION_TOKEN:
+        return False # Se il token non è configurato, salta il blocco in sicurezza
+    
+    # ID del Database Notion fornito
+    url = "https://api.notion.com/v1/databases/3a5ff5ea-717c-801a-a744-fcb924a9df4b/query"
+    headers = {
+        "Authorization": f"Bearer {NOTION_TOKEN}",
+        "Notion-Version": "2022-06-28",
+        "Content-Type": "application/json"
+    }
+    
+    # Tentativo 1: Cerca sulla colonna di default se tipizzata come 'Email'
+    payload_email = {
+        "filter": {
+            "property": "Email", 
+            "email": {"equals": email}
+        }
+    }
+    
+    # Tentativo 2: Fallback in caso la colonna fosse un semplice testo/titolo
+    payload_title = {
+        "filter": {
+            "property": "Email", # Modifica con "Name" se la tua colonna email si chiama Name
+            "rich_text": {"equals": email}
+        }
+    }
+    
+    try:
+        # Esegue la prima chiamata
+        res = requests.post(url, headers=headers, json=payload_email, timeout=5)
+        if res.status_code == 200 and len(res.json().get("results", [])) > 0:
+            return True
+        
+        # Se fallisce a causa del tipo di colonna (es. 400 Bad Request), prova con la stringa di testo
+        if res.status_code != 200:
+            res_alt = requests.post(url, headers=headers, json=payload_title, timeout=5)
+            if res_alt.status_code == 200 and len(res_alt.json().get("results", [])) > 0:
+                return True
+                
+    except Exception:
+        pass # In caso di timeout o errore di rete, fallisce in modo silenzioso (permette l'accesso)
+        
+    return False
+
 def lead_capture_gateway(module_id, action_text="Download Risultati"):
     """Soft Gate PLG: Chiede la mail bloccando solo l'output finale."""
     if st.session_state.global_clearance:
+        # Patch UX per il Double Opt-In
+        if st.session_state.just_unlocked:
+            st.success("✅ Accesso sbloccato! Ti ho appena inviato una mail importante. Se non la trovi, controlla subito la cartella Spam o Promozioni e spostala nella posta principale, altrimenti perderai l'accesso ai futuri aggiornamenti.", icon="✅")
         return True # Sistema sbloccato
     
     st.markdown("<div style='border: 1px solid #27272A; border-radius: 8px; padding: 1.5rem; background: #050505; margin-top: 1rem;'>", unsafe_allow_html=True)
@@ -213,11 +265,9 @@ def lead_capture_gateway(module_id, action_text="Download Risultati"):
     st.write("Inserisci la tua email aziendale per abilitare questa funzione e sbloccare tutto l'ecosistema Nexus Cloud. (Se sei già registrato, l'accesso è immediato).")
     
     email = st.text_input("Email:", placeholder="nome@azienda.com", key=f"email_{module_id}", label_visibility="collapsed")
-    col_cb, col_text = st.columns([0.05, 0.95])
-    with col_cb:
-        privacy_accepted = st.checkbox("", value=False, key=f"priv_{module_id}", label_visibility="collapsed")
-    with col_text:
-        st.markdown(f"<p style='margin-top: 0.25rem; font-size: 0.85rem; color: #A1A1AA;'>Accetto la <a href='{LINK_IUBENDA}' target='_blank' style='color: #10B981; text-decoration: underline;'>Privacy Policy</a>.</p>", unsafe_allow_html=True)
+    
+    # Checkbox e testo in un'unica variabile nativa per un allineamento infallibile. Streamlit legge il markdown.
+    privacy_accepted = st.checkbox(f"Accetto la [Privacy Policy]({LINK_IUBENDA}) e acconsento al trattamento dei dati.", value=False, key=f"priv_{module_id}")
     
     if st.button("SBLOCCA STRUMENTO E RICEVI ACCESSO", key=f"btn_{module_id}", use_container_width=True):
         if not email or "@" not in email or "." not in email:
@@ -226,11 +276,18 @@ def lead_capture_gateway(module_id, action_text="Download Risultati"):
             st.error("⚠️ [ERROR] Devi accettare la Privacy Policy per continuare.")
         else:
             try:
-                requests.post(MAKE_WEBHOOK_URL, json={"email": email, "source": f"Nexus_Module_{module_id}"}, timeout=3)
-            except: pass
+                # 1. Filtro di validazione asincrona su DB Notion
+                already_exists = is_email_in_notion(email)
+                
+                # 2. Trigger webhook Make SOLO se l'utente non è già archiviato, preservando i crediti
+                if not already_exists and MAKE_WEBHOOK_URL:
+                    requests.post(MAKE_WEBHOOK_URL, json={"email": email, "source": f"Nexus_Module_{module_id}"}, timeout=3)
+            except Exception: 
+                pass
             
-            # Attiva la clearance globale e forza il ricaricamento
+            # Attiva la clearance globale e flagga il messaggio di successo
             st.session_state.global_clearance = True
+            st.session_state.just_unlocked = True
             st.rerun()
             
     st.markdown("</div>", unsafe_allow_html=True)
@@ -267,10 +324,11 @@ st.sidebar.markdown("<p style='font-size: 0.75rem; font-weight: 700; color: #FFF
 selected_category = st.sidebar.selectbox("Filtra per Categoria:", list(categories.keys()), label_visibility="collapsed")
 selected_tool = st.sidebar.radio("Strumenti Attivi:", categories[selected_category], label_visibility="collapsed")
 
-# Absolute Garbage Collection (Pulisce i log se si cambia strumento)
+# Absolute Garbage Collection (Pulisce i log se si cambia strumento e cancella le allerte temporanee)
 if st.session_state.active_tool != selected_tool:
     st.session_state.sys_logs = ""
     st.session_state.m1_buffer = None
+    st.session_state.just_unlocked = False
     st.session_state.active_tool = selected_tool
 
 # ==========================================
@@ -637,7 +695,8 @@ elif selected_tool == "07. Simulatore ROI Finanziario":
         ])
         fig.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color='#A1A1AA', barmode='group', margin=dict(t=20, b=0, l=0, r=0))
         st.plotly_chart(fig, use_container_width=True)
-    st.markdown("</div>", unsafe_allow_html=True)
+    
+st.markdown("</div>", unsafe_allow_html=True)
 
 
 # ==========================================
@@ -662,14 +721,16 @@ elif selected_workspace == "🔒 NEXUS VAULT (Intelligence)":
     if search and not df_vault.empty:
         df_vault = df_vault[df_vault.apply(lambda r: r.astype(str).str.contains(search, case=False).any(), axis=1)]
     
-    # PAYWALL DATI GLOBALE: Mostra solo 3 righe se non sbloccato dall'email
-    display_df = df_vault if st.session_state.global_clearance else df_vault.head(3)
+    # PAYWALL DATI GLOBALE: Mostra solo 8 righe se non sbloccato dall'email
+    display_df = df_vault if st.session_state.global_clearance else df_vault.head(8)
     
     if not df_vault.empty:
         st.dataframe(display_df, use_container_width=True, hide_index=True)
     
     if not st.session_state.global_clearance:
-        st.markdown("<div style='text-align:center; padding:1.5rem 1rem; color:#71717A; font-size:0.85rem; border-top:1px dashed #27272A; margin-bottom:2rem;'>[ RISORSE LIMITATE A SCHERMO. ALTRI 47 RECORD OSCURATI. ]</div>", unsafe_allow_html=True)
+        # Calcola dinamicamente i record rimanenti, fall-back a zero se il CSV è più piccolo
+        hidden_records = max(0, len(df_vault) - 8)
+        st.markdown(f"<div style='text-align:center; padding:1.5rem 1rem; color:#71717A; font-size:0.85rem; border-top:1px dashed #27272A; margin-bottom:2rem;'>[ RISORSE LIMITATE A SCHERMO. ALTRI {hidden_records} RECORD OSCURATI. ]</div>", unsafe_allow_html=True)
         
         # Riutilizzo Modulare del Soft Gate
         lead_capture_gateway("vault_master", "Database Integrale in CSV")
