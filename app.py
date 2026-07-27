@@ -51,11 +51,13 @@ LINK_IUBENDA = "https://app.notion.com/p/Informativa-sulla-Privacy-3a5ff5ea717c8
 st.markdown("""
     <style>
     /* ========================================================= */
-    /* LA SOLUZIONE DEFINITIVA: FIXED LEFT NAVIGATION            */
-    /* Nascondiamo il bottone di chiusura del menu. Il menu      */
-    /* resta sempre aperto, eliminando il bug alla radice.       */
+    /* FIXED LEFT NAVIGATION (DESKTOP) & MOBILE ACCESSIBILITY    */
+    /* Nascondiamo il bottone di chiusura solo su desktop.       */
+    /* Su mobile il menu hamburger torna visibile per navigare.  */
     /* ========================================================= */
-    [data-testid="stSidebarCollapseButton"] { display: none !important; }
+    @media (min-width: 992px) {
+        [data-testid="stSidebarCollapseButton"], [data-testid="collapsedControl"] { display: none !important; }
+    }
     
     /* Rimuove l'inutile decorazione superiore di Streamlit */
     [data-testid="stDecoration"] { display: none !important; }
@@ -262,12 +264,15 @@ def lead_capture_gateway(module_id, action_text="Download Risultati"):
     
     st.markdown("<div style='border: 1px solid #27272A; border-radius: 8px; padding: 1.5rem; background: #050505; margin-top: 1rem;'>", unsafe_allow_html=True)
     st.markdown(f"<h3 style='margin-top:0; color:#FAFAFA !important; font-size:1.2rem;'>Sblocca: {action_text}</h3>", unsafe_allow_html=True)
-    st.write("Inserisci la tua email aziendale per abilitare questa funzione e sbloccare tutto l'ecosistema Nexus Cloud. (Se sei già registrato, l'accesso è immediato).")
     
-    email = st.text_input("Email:", placeholder="nome@azienda.com", key=f"email_{module_id}", label_visibility="collapsed")
+    # Copy universale modificato per eliminare la frizione B2B
+    st.write("Inserisci la tua email per abilitare questa funzione e sbloccare tutto l'ecosistema Nexus Cloud. (Se sei già registrato, l'accesso è immediato).")
     
-    # Checkbox e testo in un'unica variabile nativa per un allineamento infallibile. Streamlit legge il markdown.
-    privacy_accepted = st.checkbox(f"Accetto la [Privacy Policy]({LINK_IUBENDA}) e acconsento al trattamento dei dati.", value=False, key=f"priv_{module_id}")
+    email = st.text_input("Email:", placeholder="tua@email.com", key=f"email_{module_id}", label_visibility="collapsed")
+    
+    # Checkbox e link Privacy disaccoppiati per risolvere il bug del click
+    privacy_accepted = st.checkbox("Accetto la Privacy Policy e acconsento al trattamento dei dati.", value=False, key=f"priv_{module_id}")
+    st.markdown(f"<div style='margin-top: -10px; margin-bottom: 15px; margin-left: 30px;'><a href='{LINK_IUBENDA}' target='_blank' style='color: #3B82F6; font-size: 0.85rem; text-decoration: none;'>📄 Leggi la Privacy Policy completa</a></div>", unsafe_allow_html=True)
     
     if st.button("SBLOCCA STRUMENTO E RICEVI ACCESSO", key=f"btn_{module_id}", use_container_width=True):
         if not email or "@" not in email or "." not in email:
@@ -586,11 +591,7 @@ elif selected_tool == "05. Integrazione API (Sandbox)":
 
 # --- 06. INTERACTIVE CLOUD AUDIT ---
 elif selected_tool == "06. Interactive Cloud Audit":
-    source_py = """# Algoritmo dinamico per l'abbattimento dell'OPEX
-def calculate_burn_rate(legacy_stack):
-    burn_rate = sum(item['cost'] for item in legacy_stack)
-    apex_cost = 0 # Self-Hosted & Serverless Edge Models
-    return burn_rate, apex_cost"""
+    source_py = """# Algoritmo dinamico per l'abbattimento dell'OPEX\ndef calculate_burn_rate(legacy_stack):\n    burn_rate = sum(item['cost'] for item in legacy_stack)\n    apex_cost = 0 # Self-Hosted & Serverless Edge Models\n    return burn_rate, apex_cost"""
     render_page_header(
         "FINANCIAL AUDIT", "Interactive Cloud Audit",
         "Le aziende italiane bruciano decine di migliaia di euro ogni anno in abbonamenti software (SaaS) monolitici e costosi. Esegui un Audit interattivo per la tua azienda: seleziona i software che stai pagando oggi. Ti mostreremo istantaneamente quanti soldi stai perdendo e l'esatta alternativa (Open Source o Serverless) per azzerare le spese mensili.",
@@ -633,18 +634,42 @@ def calculate_burn_rate(legacy_stack):
     burn_rate = 0
     soluzioni = []
     
-    if zapier: burn_rate += 199; soluzioni.append("✅ Sostituisci Automazioni con **n8n (Self-Hosted)** a costo zero. Esecuzioni illimitate.")
-    if hubspot: burn_rate += 150; soluzioni.append("✅ Sostituisci il CRM con **Supabase (PostgreSQL Serverless)** a costo zero.")
-    if mail: burn_rate += 80; soluzioni.append("✅ Sostituisci Email Marketing con **Mautic (Open Source) + AWS SES** a pochi centesimi.")
-    if funnel: burn_rate += 197; soluzioni.append("✅ Sostituisci ClickFunnels con **WordPress + Ghost (Headless CMS)** a costo zero.")
-    if shopify: burn_rate += 79; soluzioni.append("✅ Sostituisci gli abbonamenti eCommerce con **WooCommerce + Stripe**.")
-    if manychat: burn_rate += 45; soluzioni.append("✅ Sostituisci i Chatbot con **Typebot (Open Source)** a costo zero.")
-    if calendly: burn_rate += 30; soluzioni.append("✅ Sostituisci Form & Meeting con **Cal.com (Self-Hosted)** a costo zero.")
-    if zendesk: burn_rate += 150; soluzioni.append("✅ Sostituisci il Customer Care con **Chatwoot (Open Source)** a costo zero.")
-    if vimeo: burn_rate += 60; soluzioni.append("✅ Sostituisci l'Hosting Video con **Cloudflare Stream** a un decimo del costo.")
-    if airtable: burn_rate += 50; soluzioni.append("✅ Sostituisci i Database NoCode con **NocoDB (Open Source)** a costo zero.")
-    if typeform: burn_rate += 59; soluzioni.append("✅ Sostituisci la raccolta Lead con **Tally.so (Free Tier Illimitato)**.")
-    if aws: burn_rate += 45; soluzioni.append("✅ Sostituisci AWS S3 Storage con **Cloudflare R2** (Zero costi per il traffico in uscita).")
+    if zapier: 
+        burn_rate += 199 
+        soluzioni.append("✅ Sostituisci Automazioni con **n8n (Self-Hosted)** a costo zero. Esecuzioni illimitate.")
+    if hubspot: 
+        burn_rate += 150 
+        soluzioni.append("✅ Sostituisci il CRM con **Supabase (PostgreSQL Serverless)** a costo zero.")
+    if mail: 
+        burn_rate += 80 
+        soluzioni.append("✅ Sostituisci Email Marketing con **Mautic (Open Source) + AWS SES** a pochi centesimi.")
+    if funnel: 
+        burn_rate += 197 
+        soluzioni.append("✅ Sostituisci ClickFunnels con **WordPress + Ghost (Headless CMS)** a costo zero.")
+    if shopify: 
+        burn_rate += 79 
+        soluzioni.append("✅ Sostituisci gli abbonamenti eCommerce con **WooCommerce + Stripe**.")
+    if manychat: 
+        burn_rate += 45 
+        soluzioni.append("✅ Sostituisci i Chatbot con **Typebot (Open Source)** a costo zero.")
+    if calendly: 
+        burn_rate += 30 
+        soluzioni.append("✅ Sostituisci Form & Meeting con **Cal.com (Self-Hosted)** a costo zero.")
+    if zendesk: 
+        burn_rate += 150 
+        soluzioni.append("✅ Sostituisci il Customer Care con **Chatwoot (Open Source)** a costo zero.")
+    if vimeo: 
+        burn_rate += 60 
+        soluzioni.append("✅ Sostituisci l'Hosting Video con **Cloudflare Stream** a un decimo del costo.")
+    if airtable: 
+        burn_rate += 50 
+        soluzioni.append("✅ Sostituisci i Database NoCode con **NocoDB (Open Source)** a costo zero.")
+    if typeform: 
+        burn_rate += 59 
+        soluzioni.append("✅ Sostituisci la raccolta Lead con **Tally.so (Free Tier Illimitato)**.")
+    if aws: 
+        burn_rate += 45 
+        soluzioni.append("✅ Sostituisci AWS S3 Storage con **Cloudflare R2** (Zero costi per il traffico in uscita).")
         
     st.markdown("---")
     c_res1, c_res2 = st.columns(2)
