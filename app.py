@@ -810,10 +810,6 @@ elif selected_workspace == "🔒 NEXUS VAULT (Intelligence)":
     
     st.markdown("<div class='nexus-card'>", unsafe_allow_html=True)
     
-    try:
-        df_vault = pd.read_csv("nexus_ai_toolkit.csv")
-    except FileNotFoundError:
-        st.error("Il file 'nexus_ai_toolkit.csv' non è presente nel server. Caricalo nella stessa cartella di GitHub.")
         df_vault = pd.DataFrame(columns=["Tecnologia", "Software", "Licenza", "Vantaggio Strategico"])
     
     search = st.text_input("🔍 Ricerca rapida nel database (es. Automazione, Hosting, AI, Cloud)...")
