@@ -809,8 +809,8 @@ elif selected_workspace == "🔒 NEXUS VAULT (Intelligence)":
     )
     
     st.markdown("<div class='nexus-card'>", unsafe_allow_html=True)
-    
-        df_vault = pd.DataFrame(columns=["Tecnologia", "Software", "Licenza", "Vantaggio Strategico"])
+
+    df_vault = load_vault_data()
     
     search = st.text_input("🔍 Ricerca rapida nel database (es. Automazione, Hosting, AI, Cloud)...")
     if search and not df_vault.empty:
