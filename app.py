@@ -723,6 +723,83 @@ elif selected_tool == "07. Simulatore ROI Finanziario":
         
     st.markdown("</div>", unsafe_allow_html=True)
 
+# === MOTORE IBRIDO NOTION (Aggiunto per Nexus Vault) ===
+@st.cache_data(ttl=600, show_spinner=False)
+def load_vault_data():
+    import os
+    import requests
+    import pandas as pd
+    import streamlit as st
+
+    # 1. Recupero Credenziali (da Streamlit o locale)
+    NOTION_TOKEN = st.secrets.get("NOTION_TOKEN", os.getenv("NOTION_TOKEN"))
+    NOTION_VAULT_DB_ID = st.secrets.get("NOTION_VAULT_DB_ID", os.getenv("NOTION_VAULT_DB_ID"))
+
+    df_notion = pd.DataFrame()
+
+    # 2. Connessione a Notion (Fast-Fail)
+    if NOTION_TOKEN and NOTION_VAULT_DB_ID:
+        url = f"https://api.notion.com/v1/databases/{NOTION_VAULT_DB_ID}/query"
+        headers = {
+            "Authorization": f"Bearer {NOTION_TOKEN}",
+            "Notion-Version": "2022-06-28",
+            "Content-Type": "application/json"
+        }
+        try:
+            response = requests.post(url, headers=headers, timeout=5)
+            if response.status_code == 200:
+                results = response.json().get("results", [])
+                parsed_rows = []
+                for row in results:
+                    props = row.get("properties", {})
+                    
+                    try:
+                        software = props.get("Software", {}).get("title", [{}])[0].get("text", {}).get("content", "")
+                    except: software = ""
+                    try:
+                        tec = props.get("Tecnologia", {}).get("select", {}).get("name", "")
+                        if not tec: tec = props.get("Tecnologia", {}).get("rich_text", [{}])[0].get("text", {}).get("content", "")
+                    except: tec = ""
+                    try:
+                        lic = props.get("Licenza", {}).get("select", {}).get("name", "")
+                        if not lic: lic = props.get("Licenza", {}).get("rich_text", [{}])[0].get("text", {}).get("content", "")
+                    except: lic = ""
+                    try:
+                        vant = props.get("Vantaggio Strategico", {}).get("rich_text", [{}])[0].get("text", {}).get("content", "")
+                    except: vant = ""
+
+                    if software:
+                        parsed_rows.append({
+                            'Software': software,
+                            'Tecnologia': tec,
+                            'Licenza': lic,
+                            'Vantaggio Strategico': vant
+                        })
+                if parsed_rows:
+                    df_notion = pd.DataFrame(parsed_rows)
+        except Exception:
+            pass # Fallimento silenzioso se Notion è giù
+
+    # 3. Restituzione Dati da Notion se avvenuta con successo
+    if not df_notion.empty:
+        return df_notion[['Software', 'Tecnologia', 'Licenza', 'Vantaggio Strategico']]
+
+    # 4. FALLBACK LOCALE (Anti-Crash) - Rete di sicurezza
+    csv_file = 'nexus_ai_toolkit.csv'
+    if os.path.exists(csv_file):
+        try:
+            return pd.read_csv(csv_file)
+        except Exception:
+            pass
+            
+    # 5. MOCK DATA DI EMERGENZA
+    return pd.DataFrame([{
+        "Software": "In attesa di Sincronizzazione", 
+        "Tecnologia": "-", 
+        "Licenza": "-", 
+        "Vantaggio Strategico": "Collega Notion o assicurati di aver caricato nexus_ai_toolkit.csv"
+    }])
+
 # ==========================================
 # HUB 02: NEXUS VAULT (INTELLIGENCE)
 # ==========================================
@@ -735,11 +812,7 @@ elif selected_workspace == "🔒 NEXUS VAULT (Intelligence)":
     
     st.markdown("<div class='nexus-card'>", unsafe_allow_html=True)
     
-    try:
-        df_vault = pd.read_csv("nexus_ai_toolkit.csv")
-    except FileNotFoundError:
-        st.error("Il file 'nexus_ai_toolkit.csv' non è presente nel server. Caricalo nella stessa cartella di GitHub.")
-        df_vault = pd.DataFrame(columns=["Tecnologia", "Software", "Licenza", "Vantaggio Strategico"])
+ df_vault = load_vault_data()
     
     search = st.text_input("🔍 Ricerca rapida nel database (es. Automazione, Hosting, AI, Cloud)...")
     if search and not df_vault.empty:
