@@ -199,6 +199,8 @@ def load_vault_data():
             response = requests.post(url, headers=headers, timeout=5)
             if response.status_code == 200:
                 results = response.json().get("results", [])
+                      else:
+                st.error(f"Errore Notion API: {response.status_code} - {response.text}")
                 parsed_rows = []
                 for row in results:
                     props = row.get("properties", {})
@@ -227,8 +229,6 @@ def load_vault_data():
                         })
                 if parsed_rows:
                     df_notion = pd.DataFrame(parsed_rows)
-            else:
-                st.error(f"Errore Notion API: {response.status_code} - {response.text}")
                 
         except Exception:
             pass
