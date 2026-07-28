@@ -227,6 +227,9 @@ def load_vault_data():
                         })
                 if parsed_rows:
                     df_notion = pd.DataFrame(parsed_rows)
+            else:
+                st.error(f"Errore Notion API: {response.status_code} - {response.text}")
+                
         except Exception:
             pass
 
