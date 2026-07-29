@@ -228,8 +228,12 @@ def load_vault_data():
                 if parsed_rows:
                     df_notion = pd.DataFrame(parsed_rows)
                 
-        except Exception:
-            pass
+        except Exception as e:
+            st.error(f"🚨 ERRORE CRITICO API NOTION: {e}")
+            try:
+                st.error(f"Dettagli Server: {response.text}")
+            except:
+                pass
 
     if not df_notion.empty:
         return df_notion[['Software', 'Tecnologia', 'Licenza', 'Vantaggio Strategico']]
