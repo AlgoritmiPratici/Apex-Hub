@@ -174,7 +174,7 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # ==========================================
-# MOTORE IBRIDO NOTION (Nexus Vault)
+# MOTORE IBRIDO NOTION (Nexus Vault) - AUTO-ADATTIVO
 # ==========================================
 @st.cache_data(ttl=600, show_spinner=False)
 def load_vault_data():
@@ -198,12 +198,6 @@ def load_vault_data():
         try:
             response = requests.post(url, headers=headers, timeout=5)
             
-            # --- BLOCCO DIAGNOSTICO ALLINEATO CORRETTAMENTE ---
-            st.warning(f"🔍 DEBUG - Status Code Notion: {response.status_code}")
-            st.info(f"🔍 DEBUG - Risposta Cruda: {response.text}")
-            st.stop()
-            # --------------------------------------------------
-            
             if response.status_code == 200:
                 results = response.json().get("results", [])
                 parsed_rows = []
@@ -211,30 +205,27 @@ def load_vault_data():
                     props = row.get("properties", {})
                     
                     try:
-                        software = props.get("Software", {}).get("title", [{}])[0].get("text", {}).get("content", "")
-                    except: 
-                        software = ""
+                        # 1. Estrae 'Tecnologia' (impostata come Title/Aa nel tuo Notion)
+                        tec = props.get("Tecnologia", {}).get("title", [{}])[0].get("text", {}).get("content", "")
+                    except: tec = ""
                         
                     try:
-                        tec = props.get("Tecnologia", {}).get("select", {}).get("name", "")
-                        if not tec: 
-                            tec = props.get("Tecnologia", {}).get("rich_text", [{}])[0].get("text", {}).get("content", "")
-                    except: 
-                        tec = ""
+                        # 2. Estrae 'Software' (impostata come rich_text nel tuo Notion)
+                        software = props.get("Software", {}).get("rich_text", [{}])[0].get("text", {}).get("content", "")
+                    except: software = ""
                         
                     try:
-                        lic = props.get("Licenza", {}).get("select", {}).get("name", "")
-                        if not lic: 
-                            lic = props.get("Licenza", {}).get("rich_text", [{}])[0].get("text", {}).get("content", "")
-                    except: 
-                        lic = ""
+                        # 3. Estrae 'Licenza' 
+                        lic = props.get("Licenza", {}).get("rich_text", [{}])[0].get("text", {}).get("content", "")
+                    except: lic = ""
                         
                     try:
-                        vant = props.get("Vantaggio Strategico", {}).get("rich_text", [{}])[0].get("text", {}).get("content", "")
-                    except: 
-                        vant = ""
+                        # 4. Trova 'Vantaggio' ignorando gli a-capo fantasma ("Vantaggio\n \nStrategico")
+                        vant_key = next((k for k in props.keys() if "Vantaggio" in k), "Vantaggio Strategico")
+                        vant = props.get(vant_key, {}).get("rich_text", [{}])[0].get("text", {}).get("content", "")
+                    except: vant = ""
 
-                    if software:
+                    if software or tec:
                         parsed_rows.append({
                             'Software': software,
                             'Tecnologia': tec,
@@ -244,17 +235,13 @@ def load_vault_data():
                 if parsed_rows:
                     df_notion = pd.DataFrame(parsed_rows)
         
-        except Exception as e:
-            st.error(f"🚨 ERRORE CRITICO API NOTION: {e}")
-            try:
-                st.error(f"Dettagli Server: {response.text}")
-            except:
-                pass
+        except Exception:
+            pass # Fallimento silenzioso ripristinato per la produzione
 
     if not df_notion.empty:
         return df_notion[['Software', 'Tecnologia', 'Licenza', 'Vantaggio Strategico']]
 
-    # Fallback locale
+    # Fallback locale in caso di assenza connessione
     csv_file = 'nexus_ai_toolkit.csv'
     if os.path.exists(csv_file):
         try:
