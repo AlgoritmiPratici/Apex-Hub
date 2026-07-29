@@ -197,9 +197,13 @@ def load_vault_data():
         }
         try:
             response = requests.post(url, headers=headers, timeout=5)
-st.warning(f"🔍 DEBUG - Status Code Notion: {response.status_code}")
-st.info(f"🔍 DEBUG - Risposta Cruda: {response.text}")
-st.stop()
+            
+            # --- BLOCCO DIAGNOSTICO ALLINEATO CORRETTAMENTE ---
+            st.warning(f"🔍 DEBUG - Status Code Notion: {response.status_code}")
+            st.info(f"🔍 DEBUG - Risposta Cruda: {response.text}")
+            st.stop()
+            # --------------------------------------------------
+            
             if response.status_code == 200:
                 results = response.json().get("results", [])
                 parsed_rows = []
@@ -208,18 +212,27 @@ st.stop()
                     
                     try:
                         software = props.get("Software", {}).get("title", [{}])[0].get("text", {}).get("content", "")
-                    except: software = ""
+                    except: 
+                        software = ""
+                        
                     try:
                         tec = props.get("Tecnologia", {}).get("select", {}).get("name", "")
-                        if not tec: tec = props.get("Tecnologia", {}).get("rich_text", [{}])[0].get("text", {}).get("content", "")
-                    except: tec = ""
+                        if not tec: 
+                            tec = props.get("Tecnologia", {}).get("rich_text", [{}])[0].get("text", {}).get("content", "")
+                    except: 
+                        tec = ""
+                        
                     try:
                         lic = props.get("Licenza", {}).get("select", {}).get("name", "")
-                        if not lic: lic = props.get("Licenza", {}).get("rich_text", [{}])[0].get("text", {}).get("content", "")
-                    except: lic = ""
+                        if not lic: 
+                            lic = props.get("Licenza", {}).get("rich_text", [{}])[0].get("text", {}).get("content", "")
+                    except: 
+                        lic = ""
+                        
                     try:
                         vant = props.get("Vantaggio Strategico", {}).get("rich_text", [{}])[0].get("text", {}).get("content", "")
-                    except: vant = ""
+                    except: 
+                        vant = ""
 
                     if software:
                         parsed_rows.append({
@@ -230,7 +243,7 @@ st.stop()
                         })
                 if parsed_rows:
                     df_notion = pd.DataFrame(parsed_rows)
-                
+        
         except Exception as e:
             st.error(f"🚨 ERRORE CRITICO API NOTION: {e}")
             try:
@@ -241,6 +254,7 @@ st.stop()
     if not df_notion.empty:
         return df_notion[['Software', 'Tecnologia', 'Licenza', 'Vantaggio Strategico']]
 
+    # Fallback locale
     csv_file = 'nexus_ai_toolkit.csv'
     if os.path.exists(csv_file):
         try:
