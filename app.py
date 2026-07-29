@@ -197,10 +197,9 @@ def load_vault_data():
         }
         try:
             response = requests.post(url, headers=headers, timeout=5)
-			
-			st.warning(f"🔍 DEBUG - Status Code Notion: {response.status_code}")
-        st.info(f"🔍 DEBUG - Risposta Cruda: {response.text}")
-        st.stop() # Questo comando uccide l'app qui, impedendo il Fallback
+st.warning(f"🔍 DEBUG - Status Code Notion: {response.status_code}")
+st.info(f"🔍 DEBUG - Risposta Cruda: {response.text}")
+st.stop()
             if response.status_code == 200:
                 results = response.json().get("results", [])
                 parsed_rows = []
