@@ -832,30 +832,54 @@ elif selected_workspace == "🔒 NEXUS VAULT (Intelligence)":
 
     df_vault = load_vault_data()
     
-    search = st.text_input("🔍 Ricerca rapida nel database (es. Automazione, Hosting, AI, Cloud)...")
-    if search and not df_vault.empty:
-        df_vault = df_vault[df_vault.apply(lambda r: r.astype(str).str.contains(search, case=False).any(), axis=1)]
-    
-    # PAYWALL DATI GLOBALE: Mostra solo 8 righe se non sbloccato dall'email
-    display_df = df_vault if st.session_state.global_clearance else df_vault.head(8)
-    
-    if not df_vault.empty:
-        st.dataframe(display_df, use_container_width=True, hide_index=True)
-    
-    if not st.session_state.global_clearance:
-        # Calcola dinamicamente i record rimanenti, fall-back a zero se il CSV è più piccolo
-        hidden_records = max(0, len(df_vault) - 8)
-        st.markdown(f"<div style='text-align:center; padding:1.5rem 1rem; color:#71717A; font-size:0.85rem; border-top:1px dashed #27272A; margin-bottom:2rem;'>[ RISORSE LIMITATE A SCHERMO. ALTRI {hidden_records} RECORD OSCURATI. ]</div>", unsafe_allow_html=True)
+    # CONTROLLO DI SICUREZZA: L'utente ha inserito l'email?
+    # Usiamo st.session_state.get() per evitare errori se la variabile non è ancora inizializzata
+    if not st.session_state.get('global_clearance', False):
         
-        # Riutilizzo Modulare del Soft Gate
+        # ==========================================
+        # STATO 1: BLOCCATO (LEAD MAGNET MODE)
+        # ==========================================
+        # L'utente vede solo il "teaser" statico di 8 righe. NESSUNA barra di ricerca.
+        
+        if not df_vault.empty:
+            st.dataframe(df_vault.head(8), use_container_width=True, hide_index=True)
+        
+        hidden_records = max(0, len(df_vault) - 8)
+        st.markdown(f"<div style='text-align:center; padding:1.5rem 1rem; color:#71717A; font-size:0.85rem; border-top:1px dashed #27272A; margin-bottom:2rem;'>[ RISORSE LIMITATE A SCHERMO. ALTRI {hidden_records} RECORD OSCURATI. INSERISCI L'EMAIL PER SBLOCCARE LA RICERCA ]</div>", unsafe_allow_html=True)
+        
+        # Modulo di cattura email
         lead_capture_gateway("vault_master", "Database Integrale in CSV")
         
     else:
-        st.markdown("<div style='border: 1px solid #10B981; border-radius: 8px; padding: 2rem; background: rgba(16,185,129,0.05); text-align:center; margin-top:2rem;'>", unsafe_allow_html=True)
-        st.markdown("<h3 style='color:#10B981 !important; margin-bottom:1rem;'>✅ Accesso Sbloccato con Successo</h3>", unsafe_allow_html=True)
-        st.write("L'archivio integrale è ora visibile a schermo. Clicca il pulsante qui sotto per salvare il file CSV sul tuo computer.")
-        if not df_vault.empty:
-            st.download_button("📥 DOWNLOAD DATABASE (.CSV)", df_vault.to_csv(index=False).encode('utf-8-sig'), "nexus_tech_vault.csv", "text/csv")
-        st.markdown("</div>", unsafe_allow_html=True)
         
+        # ==========================================
+        # STATO 2: SBLOCCATO (ACCESSO TOTALE)
+        # ==========================================
+        st.markdown("<div style='border: 1px solid #10B981; border-radius: 8px; padding: 1.5rem; background: rgba(16,185,129,0.05); text-align:center; margin-bottom:2rem;'>", unsafe_allow_html=True)
+        st.markdown("<h4 style='color:#10B981 !important; margin-bottom:0.5rem; margin-top:0;'>✅ Accesso Sbloccato con Successo</h4>", unsafe_allow_html=True)
+        st.markdown("<span style='font-size: 0.9rem; color: #E4E4E7;'>L'archivio integrale e la funzione di ricerca avanzata sono ora attivi.</span>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        # BARRA DI RICERCA BLINDATA (Esiste solo per chi ha sbloccato l'accesso)
+        search = st.text_input("🔍 Ricerca rapida nel database (es. Automazione, Hosting, AI, Cloud)...")
+        
+        display_df = df_vault
+        if search and not df_vault.empty:
+            display_df = df_vault[df_vault.apply(lambda r: r.astype(str).str.contains(search, case=False).any(), axis=1)]
+        
+        if not display_df.empty:
+            st.dataframe(display_df, use_container_width=True, hide_index=True)
+        else:
+            st.warning("Nessun risultato trovato per questa ricerca.")
+        
+        # BOTTONE DOWNLOAD IN CODA ALLA TABELLA
+        if not df_vault.empty:
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.download_button(
+                label="📥 DOWNLOAD DATABASE (.CSV)", 
+                data=df_vault.to_csv(index=False).encode('utf-8-sig'), 
+                file_name="nexus_tech_vault.csv", 
+                mime="text/csv"
+            )
+            
     st.markdown("</div>", unsafe_allow_html=True)
