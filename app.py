@@ -354,6 +354,9 @@ def lead_capture_gateway(module_id, action_text="Download Risultati"):
     Soft Gate PLG: Chiede la mail bloccando l'output finale.
     Sincronizzazione forzata con st.form + Webhook Make.com.
     """
+    # URL di Iubenda (lo passiamo come costante interna se non è definito a monte)
+    LINK_IUBENDA = "https://www.iubenda.com/privacy-policy/INSERISCI_IL_TUO_ID" 
+    
     if st.session_state.global_clearance:
         # Patch UX per il Double Opt-In
         if st.session_state.just_unlocked:
@@ -396,9 +399,20 @@ def lead_capture_gateway(module_id, action_text="Download Risultati"):
                             "source": f"Nexus_Module_{module_id}",
                             "timestamp": datetime.datetime.now().isoformat()
                         }
-                        requests.post(webhook_url, json=payload, timeout=5)
-                except Exception: 
-                    pass # Fallback silenzioso
+                        # CHIAMATA AL WEBHOOK SENZA TIMEOUT PER DEBUG
+                        response = requests.post(webhook_url, json=payload)
+                        # MESSAGGIO DI DEBUG A SCHERMO
+                        st.write(f"🛑 [DEBUG MODE] DATO INVIATO A MAKE. Status Code: {response.status_code}") 
+                        time.sleep(3) # Pausa di 3 secondi per permetterti di leggere il messaggio prima del riavvio
+                    else:
+                        # MESSAGGIO DI DEBUG A SCHERMO
+                        st.warning("🛑 [DEBUG MODE] L'email è già in Notion. Il webhook verso Make.com è stato bloccato appositamente per non sprecare crediti.")
+                        time.sleep(4)
+                        
+                except Exception as e: 
+                    # MESSAGGIO DI DEBUG A SCHERMO
+                    st.error(f"🛑 [DEBUG CRITICO] Errore di connessione a Make.com: {e}")
+                    time.sleep(5)
                 
                 # Attiva la clearance globale e flagga il messaggio di successo
                 st.session_state['global_clearance'] = True
