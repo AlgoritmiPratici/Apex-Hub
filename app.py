@@ -304,7 +304,7 @@ def render_affiliate_box(title, text, link_url, link_text):
 
 def is_email_in_notion(email):
     """Verifica se la mail esiste già nel database Notion per risparmiare crediti API e duplicati."""
-    NOTION_TOKEN = os.getenv("NOTION_TOKEN")
+    NOTION_TOKEN = os.getenv("NOTION_TOKEN") or st.secrets.get("NOTION_TOKEN", "")
     if not NOTION_TOKEN:
         return False # Se il token non è configurato, salta il blocco in sicurezza
     
@@ -327,36 +327,31 @@ def is_email_in_notion(email):
     # Tentativo 2: Fallback in caso la colonna fosse un semplice testo/titolo
     payload_title = {
         "filter": {
-            "property": "Email", # Modifica con "Name" se la tua colonna email si chiama Name
+            "property": "Email", 
             "rich_text": {"equals": email}
         }
     }
     
     try:
-        # Esegue la prima chiamata
         res = requests.post(url, headers=headers, json=payload_email, timeout=5)
         if res.status_code == 200 and len(res.json().get("results", [])) > 0:
             return True
         
-        # Se fallisce a causa del tipo di colonna (es. 400 Bad Request), prova con la stringa di testo
         if res.status_code != 200:
             res_alt = requests.post(url, headers=headers, json=payload_title, timeout=5)
             if res_alt.status_code == 200 and len(res_alt.json().get("results", [])) > 0:
                 return True
                 
     except Exception:
-        pass # In caso di timeout o errore di rete, fallisce in modo silenzioso (permette l'accesso)
+        pass # Fallback silenzioso in caso di timeout/errore di rete
         
     return False
 
 def lead_capture_gateway(module_id, action_text="Download Risultati"):
     """
     Soft Gate PLG: Chiede la mail bloccando l'output finale.
-    Sincronizzazione forzata con st.form + Webhook Make.com.
+    Sincronizzazione forzata con st.form + Webhook Make.com via Secret.
     """
-    # URL di Iubenda (lo passiamo come costante interna se non è definito a monte)
-    LINK_IUBENDA = "https://www.iubenda.com/privacy-policy/INSERISCI_IL_TUO_ID" 
-    
     if st.session_state.global_clearance:
         # Patch UX per il Double Opt-In
         if st.session_state.just_unlocked:
@@ -393,26 +388,18 @@ def lead_capture_gateway(module_id, action_text="Download Risultati"):
                     
                     # 2. Trigger webhook Make SOLO se l'utente non è già archiviato
                     if not already_exists:
-                        webhook_url = "https://hook.eu1.make.com/6a56q2o64v10619a9b73650638515a40"
-                        payload = {
-                            "email": email_input,
-                            "source": f"Nexus_Module_{module_id}",
-                            "timestamp": datetime.datetime.now().isoformat()
-                        }
-                        # CHIAMATA AL WEBHOOK SENZA TIMEOUT PER DEBUG
-                        response = requests.post(webhook_url, json=payload)
-                        # MESSAGGIO DI DEBUG A SCHERMO
-                        st.write(f"🛑 [DEBUG MODE] DATO INVIATO A MAKE. Status Code: {response.status_code}") 
-                        time.sleep(3) # Pausa di 3 secondi per permetterti di leggere il messaggio prima del riavvio
-                    else:
-                        # MESSAGGIO DI DEBUG A SCHERMO
-                        st.warning("🛑 [DEBUG MODE] L'email è già in Notion. Il webhook verso Make.com è stato bloccato appositamente per non sprecare crediti.")
-                        time.sleep(4)
+                        # Recupero dinamico del webhook secret (st.secrets o os.getenv o variabile globale MAKE_WEBHOOK_URL)
+                        target_webhook = globals().get('MAKE_WEBHOOK_URL') or os.getenv("MAKE_WEBHOOK_URL") or st.secrets.get("MAKE_WEBHOOK_URL", "")
                         
-                except Exception as e: 
-                    # MESSAGGIO DI DEBUG A SCHERMO
-                    st.error(f"🛑 [DEBUG CRITICO] Errore di connessione a Make.com: {e}")
-                    time.sleep(5)
+                        if target_webhook:
+                            payload = {
+                                "email": email_input,
+                                "source": f"Nexus_Module_{module_id}",
+                                "timestamp": datetime.datetime.now().isoformat()
+                            }
+                            requests.post(target_webhook, json=payload, timeout=5)
+                except Exception: 
+                    pass # Fallback silenzioso in produzione per proteggere la UX dell'utente
                 
                 # Attiva la clearance globale e flagga il messaggio di successo
                 st.session_state['global_clearance'] = True
