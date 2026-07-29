@@ -195,8 +195,19 @@ def load_vault_data():
             "Notion-Version": "2022-06-28",
             "Content-Type": "application/json"
         }
+        
+        # --- MOTORE DI ORDINAMENTO NATIVO ---
+        payload = {
+            "sorts": [
+                {
+                    "property": "Ranking",
+                    "direction": "ascending"
+                }
+            ]
+        }
+        
         try:
-            response = requests.post(url, headers=headers, timeout=5)
+            response = requests.post(url, headers=headers, json=payload, timeout=5)
             
             if response.status_code == 200:
                 results = response.json().get("results", [])
