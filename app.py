@@ -350,46 +350,63 @@ def is_email_in_notion(email):
     return False
 
 def lead_capture_gateway(module_id, action_text="Download Risultati"):
-    """Soft Gate PLG: Chiede la mail bloccando solo l'output finale."""
+    """
+    Soft Gate PLG: Chiede la mail bloccando l'output finale.
+    Sincronizzazione forzata con st.form + Webhook Make.com.
+    """
     if st.session_state.global_clearance:
         # Patch UX per il Double Opt-In
         if st.session_state.just_unlocked:
             st.success("✅ Accesso sbloccato! Ti ho appena inviato una mail importante. Se non la trovi, controlla subito la cartella Spam o Promozioni e spostala nella posta principale, altrimenti perderai l'accesso ai futuri aggiornamenti.", icon="✅")
+            st.session_state.just_unlocked = False # Resettiamo il trigger dopo averlo mostrato
         return True # Sistema sbloccato
     
-    st.markdown("<div style='border: 1px solid #27272A; border-radius: 8px; padding: 1.5rem; background: #050505; margin-top: 1rem;'>", unsafe_allow_html=True)
-    st.markdown(f"<h3 style='margin-top:0; color:#FAFAFA !important; font-size:1.2rem;'>Sblocca: {action_text}</h3>", unsafe_allow_html=True)
+    st.markdown("<div style='border: 1px solid #27272A; border-radius: 8px; padding: 1.5rem; background: #050505; margin-top: 1rem; margin-bottom: 1.5rem;'>", unsafe_allow_html=True)
     
-    # Copy universale modificato per eliminare la frizione B2B
-    st.write("Inserisci la tua email per abilitare questa funzione e sbloccare tutto l'ecosistema Nexus Cloud. (Se sei già registrato, l'accesso è immediato).")
-    
-    email = st.text_input("Email:", placeholder="tua@email.com", key=f"email_{module_id}", label_visibility="collapsed")
-    
-    # Checkbox e link Privacy disaccoppiati per risolvere il bug del click
-    privacy_accepted = st.checkbox("Accetto la Privacy Policy e acconsento al trattamento dei dati.", value=False, key=f"priv_{module_id}")
-    st.markdown(f"<div style='margin-top: -10px; margin-bottom: 15px; margin-left: 30px;'><a href='{LINK_IUBENDA}' target='_blank' style='color: #3B82F6; font-size: 0.85rem; text-decoration: none;'>📄 Leggi la Privacy Policy completa</a></div>", unsafe_allow_html=True)
-    
-    if st.button("SBLOCCA STRUMENTO E RICEVI ACCESSO", key=f"btn_{module_id}", use_container_width=True):
-        if not email or "@" not in email or "." not in email:
-            st.error("⚠️ [ERROR] Inserisci una email valida.")
-        elif not privacy_accepted:
-            st.error("⚠️ [ERROR] Devi accettare la Privacy Policy per continuare.")
-        else:
-            try:
-                # 1. Filtro di validazione asincrona su DB Notion
-                already_exists = is_email_in_notion(email)
+    # st.form congela l'interfaccia ed evita i reload durante il click della checkbox
+    with st.form(key=f"capture_form_{module_id}"):
+        st.markdown(f"<h3 style='margin-top:0; color:#FAFAFA !important; font-size:1.2rem;'>Sblocca: {action_text}</h3>", unsafe_allow_html=True)
+        st.write("Inserisci la tua email per abilitare questa funzione e sbloccare tutto l'ecosistema Nexus Cloud. (Se sei già registrato, l'accesso è immediato).")
+        
+        # Input E-mail
+        email_input = st.text_input("Email:", placeholder="tua@email.com", key=f"email_input_{module_id}", label_visibility="collapsed")
+        
+        # Checkbox Privacy (scorporata dal link HTML)
+        privacy_checked = st.checkbox("Accetto la Privacy Policy e acconsento al trattamento dei dati.", value=False, key=f"privacy_check_{module_id}")
+        st.markdown(f"<div style='margin-top: -10px; margin-bottom: 15px; margin-left: 30px;'><a href='{LINK_IUBENDA}' target='_blank' style='color: #3B82F6; font-size: 0.85rem; text-decoration: none;'>📄 Leggi la Privacy Policy completa</a></div>", unsafe_allow_html=True)
+        
+        # Bottone d'invio form
+        submit_btn = st.form_submit_button("SBLOCCA STRUMENTO E RICEVI ACCESSO", use_container_width=True)
+        
+        if submit_btn:
+            if not email_input or "@" not in email_input or "." not in email_input:
+                st.error("⚠️ [ERROR] Inserisci una email valida.")
+            elif not privacy_checked:
+                st.error("⚠️ [ERROR] Devi accettare la Privacy Policy per continuare.")
+            else:
+                try:
+                    # 1. Filtro di validazione asincrona su DB Notion
+                    already_exists = is_email_in_notion(email_input)
+                    
+                    # 2. Trigger webhook Make SOLO se l'utente non è già archiviato
+                    if not already_exists:
+                        webhook_url = "https://hook.eu1.make.com/6a56q2o64v10619a9b73650638515a40"
+                        payload = {
+                            "email": email_input,
+                            "source": f"Nexus_Module_{module_id}",
+                            "timestamp": datetime.datetime.now().isoformat()
+                        }
+                        requests.post(webhook_url, json=payload, timeout=5)
+                except Exception: 
+                    pass # Fallback silenzioso
                 
-                # 2. Trigger webhook Make SOLO se l'utente non è già archiviato, preservando i crediti
-                if not already_exists and MAKE_WEBHOOK_URL:
-                    requests.post(MAKE_WEBHOOK_URL, json={"email": email, "source": f"Nexus_Module_{module_id}"}, timeout=3)
-            except Exception: 
-                pass
-            
-            # Attiva la clearance globale e flagga il messaggio di successo
-            st.session_state.global_clearance = True
-            st.session_state.just_unlocked = True
-            st.rerun()
-            
+                # Attiva la clearance globale e flagga il messaggio di successo
+                st.session_state['global_clearance'] = True
+                st.session_state['just_unlocked'] = True
+                
+                # Riavvio controllato per applicare lo sblocco visivo
+                st.rerun()
+
     st.markdown("</div>", unsafe_allow_html=True)
     return False
 
