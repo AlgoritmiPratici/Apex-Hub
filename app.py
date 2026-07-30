@@ -236,12 +236,21 @@ def load_vault_data():
                         vant = props.get(vant_key, {}).get("rich_text", [{}])[0].get("text", {}).get("content", "")
                     except: vant = ""
 
+                    try:
+                        # 5. Estrae 'Link' (Supporta sia il tipo "URL" che il tipo "Testo" su Notion)
+                        if "url" in props.get("Link", {}):
+                            link = props.get("Link", {}).get("url", "")
+                        else:
+                            link = props.get("Link", {}).get("rich_text", [{}])[0].get("text", {}).get("content", "")
+                    except: link = ""
+
                     if software or tec:
                         parsed_rows.append({
                             'Software': software,
                             'Tecnologia': tec,
                             'Licenza': lic,
-                            'Vantaggio Strategico': vant
+                            'Vantaggio Strategico': vant,
+                            'Link': link if link else None
                         })
                 if parsed_rows:
                     df_notion = pd.DataFrame(parsed_rows)
@@ -250,7 +259,7 @@ def load_vault_data():
             pass # Fallimento silenzioso ripristinato per la produzione
 
     if not df_notion.empty:
-        return df_notion[['Software', 'Tecnologia', 'Licenza', 'Vantaggio Strategico']]
+        return df_notion[['Software', 'Tecnologia', 'Licenza', 'Vantaggio Strategico', 'Link']]
 
     # Fallback locale in caso di assenza connessione
     csv_file = 'nexus_ai_toolkit.csv'
@@ -264,7 +273,8 @@ def load_vault_data():
         "Software": "In attesa di Sincronizzazione", 
         "Tecnologia": "-", 
         "Licenza": "-", 
-        "Vantaggio Strategico": "Collega Notion o assicurati di aver caricato nexus_ai_toolkit.csv"
+        "Vantaggio Strategico": "Collega Notion o assicurati di aver caricato nexus_ai_toolkit.csv",
+        "Link": "https://nexus.cloud"
     }])
 
 # ==========================================
@@ -850,6 +860,14 @@ elif selected_workspace == "🔒 NEXUS VAULT (Intelligence)":
 
     df_vault = load_vault_data()
     
+    # Configurazione estetica per trasformare la colonna in pulsanti cliccabili
+    vault_column_config = {
+        "Link": st.column_config.LinkColumn(
+            "Link Ufficiale", 
+            display_text="Apri Sito ↗"
+        )
+    }
+    
     # CONTROLLO DI SICUREZZA: L'utente ha inserito l'email?
     # Usiamo st.session_state.get() per evitare errori se la variabile non è ancora inizializzata
     if not st.session_state.get('global_clearance', False):
@@ -860,7 +878,7 @@ elif selected_workspace == "🔒 NEXUS VAULT (Intelligence)":
         # L'utente vede solo il "teaser" statico di 8 righe. NESSUNA barra di ricerca.
         
         if not df_vault.empty:
-            st.dataframe(df_vault.head(8), use_container_width=True, hide_index=True)
+            st.dataframe(df_vault.head(8), use_container_width=True, hide_index=True, column_config=vault_column_config)
         
         hidden_records = max(0, len(df_vault) - 8)
         st.markdown(f"<div style='text-align:center; padding:1.5rem 1rem; color:#71717A; font-size:0.85rem; border-top:1px dashed #27272A; margin-bottom:2rem;'>[ RISORSE LIMITATE A SCHERMO. ALTRI {hidden_records} RECORD OSCURATI. INSERISCI L'EMAIL PER SBLOCCARE LA RICERCA ]</div>", unsafe_allow_html=True)
@@ -886,7 +904,7 @@ elif selected_workspace == "🔒 NEXUS VAULT (Intelligence)":
             display_df = df_vault[df_vault.apply(lambda r: r.astype(str).str.contains(search, case=False).any(), axis=1)]
         
         if not display_df.empty:
-            st.dataframe(display_df, use_container_width=True, hide_index=True)
+            st.dataframe(display_df, use_container_width=True, hide_index=True, column_config=vault_column_config)
         else:
             st.warning("Nessun risultato trovato per questa ricerca.")
         
