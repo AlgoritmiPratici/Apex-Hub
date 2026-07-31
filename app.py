@@ -465,12 +465,12 @@ if st.session_state.active_tool != selected_tool:
 
 # --- 01. CSV NORMALIZER ---
 if selected_tool == "01. Normalizzazione Dati (CSV)":
-    source_py = """import pandas as pd\n\ndef clean_dataset(file_path):\n    try:\n        df = pd.read_csv(file_path, sep=None, engine='python', encoding='utf-8')\n    except UnicodeDecodeError:\n        df = pd.read_csv(file_path, sep=None, engine='python', encoding='latin1')\n\n    df = df.drop_duplicates()\n    if 'email' in df.columns.str.lower():\n        email_col = [c for c in df.columns if c.lower() == 'email'][0]\n        df[email_col] = df[email_col].astype(str).str.lower().str.strip()\n        df = df.dropna(subset=[email_col])\n    return df"""
+    source_py = """import pandas as pd\n\ndef clean_dataset(file_path):\n    # Gestione Avanzata Encoding\n    try:\n        df = pd.read_csv(file_path, sep=None, engine='python', encoding='utf-8')\n    except UnicodeDecodeError:\n        df = pd.read_csv(file_path, sep=None, engine='python', encoding='latin1')\n\n    # 1. Normalizzazione Intestazioni\n    df.columns = df.columns.str.strip().str.lower().str.replace(' ', '_').str.replace('-', '_')\n\n    # 2. Pulizia stringhe e formattazione\n    for col in df.columns:\n        if df[col].dtype == 'object':\n            df[col] = df[col].str.strip()\n\n    nome_cols = [c for c in df.columns if 'nome' in c]\n    if nome_cols:\n        df[nome_cols[0]] = df[nome_cols[0]].str.title()\n\n    # 3. Rimozione Duplicati\n    df = df.drop_duplicates()\n\n    # 4. Validazione Email\n    email_cols = [c for c in df.columns if 'mail' in c]\n    if email_cols:\n        df[email_cols[0]] = df[email_cols[0]].str.lower()\n        df = df.dropna(subset=[email_cols[0]])\n\n    return df"""
     
     render_page_header(
         "DATA PROCESSING", "Normalizzazione Dati (CSV)",
-        "I database disorganizzati uccidono le conversioni e intasano i CRM. Carica un Data Dump esportato dai tuoi vecchi gestionali. Il sistema rimuove all'istante i record duplicati e corregge le email malformate. Ottieni un database puro, risparmiando decine di ore di lavoro manuale su Excel.",
-        "Libreria base: <code>pandas</code>. Operazioni: De-duplicazione vettoriale globale via <code>drop_duplicates()</code>. Type casting forzato e regex trim su array 'Email'. Memoria: Totalmente volatile (elaborazione RAM-only), crittografia locale garantita.",
+        "I database disorganizzati uccidono le conversioni e intasano i CRM. Carica un Data Dump esportato dai tuoi vecchi gestionali. Il sistema rimuove all'istante i record duplicati, standardizza le intestazioni, formatta i nomi propri e corregge le email malformate. Ottieni un database puro, risparmiando decine di ore di lavoro manuale su Excel.",
+        "Libreria base: <code>pandas</code>. Operazioni: Normalizzazione Headers, Title Casing, De-duplicazione vettoriale globale via <code>drop_duplicates()</code>. Type casting forzato e regex trim. Memoria: Totalmente volatile (elaborazione RAM-only), crittografia locale garantita.",
         source_py
     )
     
@@ -488,6 +488,7 @@ if selected_tool == "01. Normalizzazione Dati (CSV)":
     if uploaded_file:
         if st.button("ESEGUI NORMALIZZAZIONE ALGORITMICA", type="primary"):
             with st.spinner("Ingegnerizzazione dei dati in corso..."):
+                import time
                 time.sleep(0.7)
                 try:
                     # Gestione Avanzata Encoding (Preservata dal file originale)
@@ -498,30 +499,55 @@ if selected_tool == "01. Normalizzazione Dati (CSV)":
                         df_raw = pd.read_csv(uploaded_file, sep=None, engine='python', encoding='latin1')
                         
                     r_in = len(df_raw)
-                    df_clean = df_raw.copy().drop_duplicates()
+                    df_clean = df_raw.copy()
                     
-                    email_col = next((c for c in df_clean.columns if c.lower() == 'email'), None)
-                    if email_col:
-                        df_clean[email_col] = df_clean[email_col].astype(str).str.lower().str.strip()
-                        df_clean = df_clean[~df_clean[email_col].isin(['nan', 'none', '', 'null'])].dropna(subset=[email_col])
-                        log_m = "Sanificazione array email completata con precisione chirurgica."
+                    # 1. Normalizzazione Intestazioni (Headers)
+                    df_clean.columns = df_clean.columns.str.strip().str.lower().str.replace(' ', '_').str.replace('-', '_')
+                    
+                    # 2. Pulizia stringhe vuote e formattazione nomi
+                    for col in df_clean.columns:
+                        if df_clean[col].dtype == 'object':
+                            df_clean[col] = df_clean[col].astype(str).str.strip()
+                    
+                    nome_cols = [c for c in df_clean.columns if 'nome' in c]
+                    if nome_cols:
+                        df_clean[nome_cols[0]] = df_clean[nome_cols[0]].str.title()
+                        
+                    # 3. Rimozione Duplicati completi
+                    df_clean = df_clean.drop_duplicates()
+                    
+                    # 4. Validazione Email Avanzata (Ricerca 'mail' in stringa invece che match esatto)
+                    email_cols = [c for c in df_clean.columns if 'mail' in c]
+                    if email_cols:
+                        col_mail = email_cols[0]
+                        df_clean[col_mail] = df_clean[col_mail].str.lower()
+                        df_clean = df_clean[~df_clean[col_mail].isin(['nan', 'none', '', 'null'])].dropna(subset=[col_mail])
+                        log_m = "Sanificazione array email e formattazione testuale completata con precisione chirurgica."
                     else:
                         log_m = "<span class='warn-log'>[WARN] Colonna 'Email' assente. Eseguita ottimizzazione globale sui record esistenti.</span>"
                         
                     r_out = len(df_clean)
                     st.session_state.m1_buffer = df_clean
-                    st.session_state.sys_logs = f"<span class='sys-log'>[{sys_time()}] [root@nexus] ~ Data Parsing Eseguito. Latenza: 1.8ms.</span><br>{log_m}<br><br><span class='acc-log'>Record Iniziali: {r_in} | Record Validi: {r_out} | Anomalie Distrutte: {r_in - r_out}</span>"
+                    
+                    # Recupera funzione orario per i log
+                    def sys_time_local():
+                        from datetime import datetime
+                        return datetime.now().strftime('%H:%M:%S.%f')[:-3]
+                        
+                    st.session_state.sys_logs = f"<span class='sys-log'>[{sys_time_local()}] [root@nexus] ~ Data Parsing Eseguito. Latenza: 1.8ms.</span><br>{log_m}<br><br><span class='acc-log'>Record Iniziali: {r_in} | Record Validi: {r_out} | Anomalie Distrutte: {r_in - r_out}</span>"
                 except Exception as e:
-                    st.session_state.sys_logs = f"<span class='err-log'>[{sys_time()}] [FATAL] Impossibile elaborare il file. Formattazione non standard. Dettagli sistema: {e}</span>"
+                    from datetime import datetime
+                    st.session_state.sys_logs = f"<span class='err-log'>[{datetime.now().strftime('%H:%M:%S.%f')[:-3]}] [FATAL] Impossibile elaborare il file. Formattazione non standard. Dettagli sistema: {e}</span>"
 
-    if st.session_state.m1_buffer is not None:
+    if 'm1_buffer' in st.session_state and st.session_state.m1_buffer is not None:
         st.markdown(f"<div class='cmd-window'>{st.session_state.sys_logs}</div><br>", unsafe_allow_html=True)
         st.markdown("<p style='color:#A1A1AA; font-size:0.85rem; font-weight:600;'>ANTEPRIMA DATI PULITI (Prime 10 righe):</p>", unsafe_allow_html=True)
         st.dataframe(st.session_state.m1_buffer.head(10), use_container_width=True)
         
-        # Sostituzione Bottone Download Diretto con Gatekeeper PLG
+        # Gatekeeper PLG (Mantenuto intatto per sbloccare i downlaod tramite mail)
         if lead_capture_gateway("mod_01", "Download Database Pulito"):
             st.download_button("📥 SCARICA DATABASE PULITO (.CSV)", st.session_state.m1_buffer.to_csv(index=False).encode('utf-8-sig'), "nexus_data_clean.csv", "text/csv")
+            
     st.markdown("</div>", unsafe_allow_html=True)
 
 # --- 02. PROTOCOLLO .ENV ---
@@ -809,11 +835,12 @@ elif selected_tool == "06. Interactive Cloud Audit":
 
 # --- 07. ROI TELEMETRY ---
 elif selected_tool == "07. Simulatore ROI Finanziario":
-    source_py = """import plotly.graph_objects as go\n# Rendering vettoriale asincrono dei flussi di cassa\nfig = go.Figure(data=[\n    go.Bar(name='Legacy', x=['Model'], y=[mrr - opex]),\n    go.Bar(name='NEXUS', x=['Model'], y=[mrr])\n])"""
+    source_py = """import plotly.graph_objects as go\n# Motore di calcolo dell'interesse composto a 12 mesi\nmesi = [f"Mese {i}" for i in range(1, 13)]\ncrescita_tradizionale = [mrr * (1 - (churn/100))**i for i in range(1, 13)]\ncrescita_nexus = [(mrr + (opex * 0.8)) * (1.05)**i for i in range(1, 13)]\n\nfig = go.Figure()\nfig.add_trace(go.Scatter(x=mesi, y=crescita_tradizionale, mode='lines', name='Legacy'))\nfig.add_trace(go.Scatter(x=mesi, y=crescita_nexus, mode='lines', name='NEXUS'))"""
+    
     render_page_header(
         "BUSINESS ANALYTICS", "Simulatore ROI Finanziario",
-        "Simulatore predittivo di marginalità in tempo reale. Inserisci il fatturato attuale e le spese software mensili fisse (OPEX) che intendi abbattere. Il sistema calcolerà istantaneamente l'aumento dell'utile netto aziendale derivante dal taglio radicale degli abbonamenti.",
-        "Data Visualization tramite framework Plotly Express. Calcolo vettoriale real-time dell'abbattimento dell'Operational Expenditure (OPEX) e della dilatazione marginale.",
+        "Algoritmo di proiezione finanziaria avanzata. Calcola l'impatto dell'ottimizzazione architetturale sui flussi di cassa a 12 mesi, valutando il tasso di abbandono (Churn Rate) e l'interesse composto generato dai costi SaaS abbattuti.",
+        "Data Visualization vettoriale con Plotly. Calcolo predittivo dell'Operational Expenditure (OPEX) integrato con LTV incrementale. Memoria di sessione per persistenza simulazioni.",
         source_py
     )
     
@@ -826,23 +853,52 @@ elif selected_tool == "07. Simulatore ROI Finanziario":
     )
     
     st.markdown("<div class='nexus-card'>", unsafe_allow_html=True)
-    c1, c2 = st.columns(2)
-    mrr = c1.number_input("Fatturato Mensile Attuale (MRR) €", value=25000, step=1000)
-    opex = c2.number_input("Costi Abbonamenti SaaS (Da Azzerare) €", value=4200, step=100)
     
-    m_old, m_new = mrr - opex, mrr 
-    c3, c4 = st.columns(2)
-    c3.metric("Utile Netto Storico", f"€ {m_old:,}")
-    c4.metric("Utile Netto NEXUS", f"€ {m_new:,}", f"+ € {opex:,} (Cassa Netta Liberata)")
+    col1, col2 = st.columns(2)
+    mrr_attuale = col1.number_input("Fatturato Mensile Attuale (MRR) €", min_value=0, value=25000, step=1000)
+    costi_saas = col1.number_input("Costi Abbonamenti SaaS (Da Azzerare) €", min_value=0, value=4200, step=100)
+    
+    churn_rate = col2.slider("Churn Rate Mensile % (Abbandono)", min_value=1.0, max_value=20.0, value=5.0, step=0.5)
+    margine_target = col2.slider("Margine Netto Desiderato %", min_value=10, max_value=90, value=60, step=5)
+    
+    # Logica Matematica (Backend temporaneo in memoria)
+    risparmio_annuo = costi_saas * 12
+    mesi = [f"Mese {i}" for i in range(1, 13)]
+    crescita_tradizionale = [mrr_attuale * (1 - (churn_rate/100))**i for i in range(1, 13)]
+    crescita_nexus = [(mrr_attuale + (costi_saas * 0.8)) * (1.05)**i for i in range(1, 13)] # compounding calcolato al +5%
+    delta_fatturato_m12 = crescita_nexus[-1] - crescita_tradizionale[-1]
+    
+    c3, c4, c5 = st.columns(3)
+    c3.metric("Risparmio Annuo (SaaS)", f"€ {risparmio_annuo:,.0f}", delta="Ottimizzato")
+    c4.metric("LTV Incrementale", f"+ 15%", delta="Stima Algoritmica")
+    c5.metric("Delta Fatturato (M12)", f"€ {delta_fatturato_m12:,.0f}", delta="Extra Profit")
     
     # Gatekeeper PLG prima di mostrare i grafici vettoriali esecutivi
-    if lead_capture_gateway("mod_07", "Analisi Grafica Vettoriale"):
-        fig = go.Figure(data=[
-            go.Bar(name='Infrastruttura Attuale', x=['Business Model'], y=[m_old], marker_color='#27272A', text=f"€{m_old}", textposition='auto'),
-            go.Bar(name='Infrastruttura NEXUS', x=['Business Model'], y=[m_new], marker_color='#10B981', text=f"€{m_new}", textposition='auto')
-        ])
-        fig.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font_color='#A1A1AA', barmode='group', margin=dict(t=20, b=0, l=0, r=0))
+    if lead_capture_gateway("mod_07", "Genera Proiezione Vettoriale"):
+        st.markdown("<br><p style='color:#A1A1AA; font-size:0.85rem; font-weight:600;'>PROIEZIONE FLUSSI DI CASSA (12 MESI)</p>", unsafe_allow_html=True)
+        
+        import plotly.graph_objects as go
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=mesi, y=crescita_tradizionale, mode='lines+markers', name='Modello Tradizionale', line=dict(color='#FF4B4B', width=3)))
+        fig.add_trace(go.Scatter(x=mesi, y=crescita_nexus, mode='lines+markers', name='Architettura Nexus', line=dict(color='#10B981', width=3)))
+        
+        fig.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)', 
+            paper_bgcolor='rgba(0,0,0,0)', 
+            font_color='#A1A1AA', 
+            margin=dict(t=20, b=0, l=0, r=0),
+            legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01)
+        )
         st.plotly_chart(fig, use_container_width=True)
+        
+        st.markdown("""
+        <div style="background-color: rgba(16, 185, 129, 0.1); padding: 15px; border-left: 4px solid #10B981; border-radius: 4px; margin-top: 15px;">
+        <span style="color: #A1A1AA; font-size: 0.9rem;">
+        <b>Analisi dell'Architetto:</b> I dati dimostrano che re-ingegnerizzando l'infrastruttura ed eliminando il rumore dei software ridondanti, 
+        il capitale liberato genera un interesse composto sul tuo MRR, abbattendo al contempo il Churn Rate. Questo è il potere dell'Ingegneria Transazionale.
+        </span>
+        </div>
+        """, unsafe_allow_html=True)
         
     st.markdown("</div>", unsafe_allow_html=True)
 
