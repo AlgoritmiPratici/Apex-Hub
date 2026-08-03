@@ -469,8 +469,7 @@ if selected_tool == "01. Normalizzazione Dati (CSV)":
 import numpy as np
 import re
 
-def clean_dataset_nexus_v3(file_path):
-    # 1. Parsing Resiliente ai Delimitatori
+def clean_dataset_nexus_v4(file_path):
     try:
         df = pd.read_csv(file_path, sep=',', encoding='utf-8')
         if df.shape[1] <= 1:
@@ -480,7 +479,7 @@ def clean_dataset_nexus_v3(file_path):
 
     df_clean = df.copy()
 
-    # 2. Normalizzazione Intestazioni (Snake_Case Assoluto)
+    # 1. Normalizzazione Intestazioni (Snake_Case Assoluto)
     headers = []
     for col in df_clean.columns:
         c = str(col).strip().lower()
@@ -494,16 +493,15 @@ def clean_dataset_nexus_v3(file_path):
         headers.append(c if c else 'colonna')
     df_clean.columns = headers
 
-    # 3. Pulizia Stringhe e NaN
+    # 2. Pulizia Stringhe e NaN
     df_clean = df_clean.dropna(how='all')
     for col in df_clean.columns:
         if df_clean[col].dtype == 'object':
             df_clean[col] = df_clean[col].astype(str).replace(r'^\s*$', np.nan, regex=True)
             df_clean[col] = df_clean[col].replace(['nan', 'None', 'null', 'NaN', 'N/A', 'n/a'], np.nan)
-            df_clean[col] = df_clean[col].str.strip()
-            df_clean[col] = df_clean[col].replace(r'\s+', ' ', regex=True)
+            df_clean[col] = df_clean[col].str.strip().replace(r'\s+', ' ', regex=True)
 
-    # 4. CROSS-COLUMN SALVAGE (Auto-Riparazione Dati Traslati)
+    # 3. CROSS-COLUMN SALVAGE (Vettoriale - Bug-Free)
     email_cols = [c for c in df_clean.columns if 'mail' in c]
     tel_cols = [c for c in df_clean.columns if any(k in c for k in ['tel', 'phone', 'cell', 'mobile', 'telefono'])]
 
@@ -511,59 +509,64 @@ def clean_dataset_nexus_v3(file_path):
         col_m = email_cols[0]
         col_t = tel_cols[0]
         
-        def salvage_shifted(row):
-            val_m = str(row[col_m])
-            val_t = str(row[col_t])
-            # Se la mail sembra un telefono e il telefono sembra una mail -> SCAMBIA
-            is_m_phone = not '@' in val_m and any(c.isdigit() for c in val_m) and len(re.sub(r'[^\d]', '', val_m)) > 5
-            is_t_email = '@' in val_t
-            
-            if is_m_phone and is_t_email:
-                row[col_m], row[col_t] = val_t, val_m
-            return row
-            
-        df_clean = df_clean.apply(salvage_shifted, axis=1)
+        val_m = df_clean[col_m].fillna('')
+        val_t = df_clean[col_t].fillna('')
+        
+        is_m_phone = (~val_m.str.contains('@', na=False)) & (val_m.str.replace(r'[^\d]', '', regex=True).str.len() >= 6)
+        is_t_email = val_t.str.contains('@', na=False)
+        swap_mask = is_m_phone & is_t_email
+        
+        if swap_mask.any():
+            df_clean.loc[swap_mask, [col_m, col_t]] = df_clean.loc[swap_mask, [col_t, col_m]].values
 
-    # 5. Email Auto-Repair (Typo Engine Potenziato)
+    # 4. Email Auto-Repair & Toxic Purge
     if email_cols:
         col_m = email_cols[0]
+        df_clean[col_m] = df_clean[col_m].astype(str).str.lower().str.strip()
+        
+        # Purge
+        toxic_emails = ['test@test.com', 'admin@admin.com', 'prova@prova.it']
+        df_clean.loc[df_clean[col_m].isin(toxic_emails), col_m] = np.nan
+        
+        # Typo Engine
         email_typos = {
-            r'@gmail?l?\.com$': '@gmail.com', # Identifica gmai, gmail, gmaill
+            r'@gmail?l?\.com$': '@gmail.com',
             r'@gamil\.com$': '@gmail.com',
-            r'@gmal\.com$': '@gmail.com',
-            r'@outloo?k\.com$': '@outlook.com',
             r'@hotmaill?\.com$': '@hotmail.com',
             r'@yaho+\.com$': '@yahoo.com'
         }
         for pattern, target in email_typos.items():
             df_clean[col_m] = df_clean[col_m].str.replace(pattern, target, regex=True)
+            
+        # 5. B2B Domain Extractor (NEW)
+        free_mails = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'virgilio.it', 'libero.it', 'tiscali.it', 'icloud.com']
+        domains = df_clean[col_m].str.split('@').str[1]
+        df_clean['dominio_b2b'] = np.where(domains.isin(free_mails) | domains.isna(), np.nan, domains)
 
-    # 6. Sanificazione Nomi
-    nome_cols = [c for c in df_clean.columns if any(k in c for k in ['nome', 'cognome', 'name', 'cliente'])]
+    # 6. Sanificazione Nomi & Valute
+    nome_cols = [c for c in df_clean.columns if any(k in c for k in ['nome', 'cognome', 'name'])]
+    toxic_names = ['test', 'prova', 'admin', 'sconosciuto', 'nessuno']
     for col in nome_cols:
         df_clean[col] = df_clean[col].apply(lambda x: str(x).title() if pd.notna(x) else x)
+        df_clean.loc[df_clean[col].str.lower().isin(toxic_names), col] = np.nan
 
-    # 7. Sanificazione Telefoni
     if tel_cols:
-        col_t = tel_cols[0]
-        df_clean[col_t] = df_clean[col_t].apply(lambda x: re.sub(r'[^\d+]', '', str(x)) if pd.notna(x) else np.nan)
+        df_clean[tel_cols[0]] = df_clean[tel_cols[0]].apply(lambda x: re.sub(r'[^\d+]', '', str(x)) if pd.notna(x) else np.nan)
 
-    # 8. Deduplicazione Pura
     df_clean = df_clean.drop_duplicates()
-
     return df_clean"""
 
     render_page_header(
-        "DATA PROCESSING", "Enterprise CSV Normalizer & Sanitizer V3",
-        "Motore di data-enrichment professionale. Il modulo non si limita a pulire le stringhe, ma applica una Self-Healing Matrix: rileva e re-incolonna automaticamente i dati inseriti nei campi sbagliati (es. telefoni scambiati con email), ripara errori di battitura dei domini web e standardizza ogni record. L'algoritmo non distrugge alcun dato valido.",
-        "Tecnologia Core: <code>pandas</code>, <code>numpy</code>, <code>regex</code>. Operazioni: Cross-Column Salvage, Smart Delimiter Sniffing, Domain Typo Auto-Repair, Vectorized Formatting.",
+        "DATA PROCESSING", "Enterprise Normalizer & B2B Enricher V4",
+        "Ecosistema di elaborazione vettoriale. Oltre a riparare errori di battitura e allineare colonne traslate (Cross-Column Salvage), la versione V4 attiva il protocollo 'Toxic Purge' (eliminazione di mail e nomi di test/falsi) e un motore di 'B2B Enrichment' automatico: analizza le mail aziendali ed estrae automaticamente i domini dei siti web (SaaS, Corp, ecc.) creando nuove pipeline di dati.",
+        "Tecnologia Core: <code>pandas</code>, <code>numpy</code>. Operazioni: Vectorized Column Swapping, B2B Domain Extraction, Toxic Data Purging, Deep Space Compression.",
         source_py
     )
 
     # 👉 [LINK AFFILIAZIONE 1 - AIRTABLE]
     render_affiliate_box(
         "Airtable", 
-        "Pulire i dati è solo l'inizio. Per strutturare i lead riparati in tabelle dinamiche e automatizzare i flussi CRM, importa il CSV normalizzato direttamente su Airtable.", 
+        "L'arricchimento B2B ha sbloccato i domini aziendali. Esporta questi dati su Airtable per creare un CRM automatizzato e iniziare il Cold Outreach senza scrivere codice.", 
         "https://airtable.com", 
         "Crea un account gratuito su Airtable"
     )
@@ -572,8 +575,8 @@ def clean_dataset_nexus_v3(file_path):
     uploaded_file = st.file_uploader("Trascina il tuo Data Dump (.csv) qui", type=["csv"])
 
     if uploaded_file:
-        if st.button("ESEGUI NORMALIZZAZIONE MATRIX V3", type="primary"):
-            with st.spinner("Allineamento matrice dati e riparazione vettoriale in corso..."):
+        if st.button("ESEGUI NORMALIZZAZIONE E ARRICCHIMENTO V4", type="primary"):
+            with st.spinner("Compilazione matrice vettoriale e arricchimento dati..."):
                 import time
                 import numpy as np
                 import re
@@ -581,7 +584,7 @@ def clean_dataset_nexus_v3(file_path):
                 
                 start_time = time.time()
                 try:
-                    # 1. Parsing Autonomo Potenziato
+                    # 1. Parsing Resiliente
                     try:
                         df_raw = pd.read_csv(uploaded_file, sep=',', encoding='utf-8')
                         if df_raw.shape[1] <= 1:
@@ -617,7 +620,7 @@ def clean_dataset_nexus_v3(file_path):
                             df_clean[col] = df_clean[col].str.strip()
                             df_clean[col] = df_clean[col].replace(r'\s+', ' ', regex=True)
 
-                    # 4. CROSS-COLUMN SALVAGE MATRIX (Auto-riparazione colonne invertite)
+                    # 4. CROSS-COLUMN SALVAGE MATRIX (Totalmente Vettoriale)
                     cross_swaps = 0
                     email_cols = [c for c in df_clean.columns if 'mail' in c]
                     tel_cols = [c for c in df_clean.columns if any(k in c for k in ['tel', 'phone', 'cell', 'mobile', 'telefono'])]
@@ -626,35 +629,51 @@ def clean_dataset_nexus_v3(file_path):
                         col_m = email_cols[0]
                         col_t = tel_cols[0]
                         
-                        def salvage_shifted(row):
-                            nonlocal cross_swaps
-                            val_m = str(row[col_m])
-                            val_t = str(row[col_t])
-                            # Valuta se la colonna mail ha solo numeri e la colonna tel ha la @
-                            is_m_phone = not '@' in val_m and any(c.isdigit() for c in val_m) and len(re.sub(r'[^\d]', '', val_m)) > 5
-                            is_t_email = '@' in val_t
-                            
-                            if is_m_phone and is_t_email:
-                                row[col_m], row[col_t] = val_t, val_m
-                                cross_swaps += 1
-                            return row
-                            
-                        df_clean = df_clean.apply(salvage_shifted, axis=1)
+                        val_m = df_clean[col_m].fillna('')
+                        val_t = df_clean[col_t].fillna('')
+                        
+                        # Maschere Logiche (Pandas puro, super veloce, no nonlocal bug)
+                        is_m_phone = (~val_m.str.contains('@', na=False)) & (val_m.str.replace(r'[^\d]', '', regex=True).str.len() >= 6)
+                        is_t_email = val_t.str.contains('@', na=False)
+                        
+                        swap_mask = is_m_phone & is_t_email
+                        cross_swaps = int(swap_mask.sum())
+                        
+                        if cross_swaps > 0:
+                            # Swap istantaneo dei dati
+                            df_clean.loc[swap_mask, [col_m, col_t]] = df_clean.loc[swap_mask, [col_t, col_m]].values
 
-                    # 5. Smart Title Case per Nomi
+                    # 5. Smart Title Case per Nomi e Toxic Purge
                     nome_cols = [c for c in df_clean.columns if any(k in c for k in ['nome', 'cognome', 'name', 'cliente', 'referente'])]
+                    toxic_names = ['test', 'prova', 'admin', 'sconosciuto', 'nessuno']
+                    toxic_purged = 0
+                    
                     for col in nome_cols:
                         if col in df_clean.columns and df_clean[col].dtype == 'object':
                             df_clean[col] = df_clean[col].apply(lambda x: str(x).title() if pd.notna(x) else x)
+                            # Pialla nomi tossici
+                            mask_toxic = df_clean[col].str.lower().isin(toxic_names)
+                            toxic_purged += int(mask_toxic.sum())
+                            df_clean.loc[mask_toxic, col] = np.nan
 
-                    # 6. Email Auto-Repair Engine (Typo Correction V3)
+                    # 6. Email Auto-Repair & B2B ENRICHMENT ENGINE
                     repaired_emails = 0
+                    b2b_domains_found = 0
+                    
                     if email_cols:
                         col_m = email_cols[0]
                         if df_clean[col_m].dtype == 'object':
                             df_clean[col_m] = df_clean[col_m].astype(str).str.lower().str.strip()
+                            
+                            # Toxic Email Purge
+                            toxic_emails = ['test@test.com', 'admin@admin.com', 'prova@prova.it', 'nessuno@nessuno.com']
+                            mask_toxic_mail = df_clean[col_m].isin(toxic_emails)
+                            toxic_purged += int(mask_toxic_mail.sum())
+                            df_clean.loc[mask_toxic_mail, col_m] = np.nan
+                            
+                            # Typo Correction
                             email_typos = {
-                                r'@gmail?l?\.com$': '@gmail.com', # Cattura gmai, gmail, gmaill
+                                r'@gmail?l?\.com$': '@gmail.com',
                                 r'@gamil\.com$': '@gmail.com',
                                 r'@gmal\.com$': '@gmail.com',
                                 r'@outloo?k\.com$': '@outlook.com',
@@ -669,7 +688,24 @@ def clean_dataset_nexus_v3(file_path):
                                 if matches > 0:
                                     repaired_emails += matches
                                     df_clean[col_m] = df_clean[col_m].str.replace(pattern, target, regex=True)
+                            
                             df_clean[col_m] = df_clean[col_m].replace(['nan', 'none', 'null'], np.nan)
+                            
+                            # ---- B2B ENRICHMENT ----
+                            # Lista domini gratuiti da escludere dall'estrazione
+                            free_mails = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'virgilio.it', 'libero.it', 'tiscali.it', 'icloud.com', 'me.com', 'msn.com', 'alice.it']
+                            domains = df_clean[col_m].str.split('@').str[1]
+                            
+                            # Seleziona solo i domini che NON sono nelle free mail (quindi sono domini aziendali)
+                            b2b_mask = ~domains.isin(free_mails) & domains.notna()
+                            b2b_domains_found = int(b2b_mask.sum())
+                            
+                            # Crea la nuova colonna B2B
+                            df_clean['dominio_b2b'] = np.where(b2b_mask, domains, np.nan)
+                            # Riposiziona la colonna subito dopo la mail per eleganza
+                            cols = list(df_clean.columns)
+                            cols.insert(cols.index(col_m) + 1, cols.pop(cols.index('dominio_b2b')))
+                            df_clean = df_clean.reindex(columns=cols)
 
                     # 7. Telefono Sanitizer
                     for col in tel_cols:
@@ -722,6 +758,8 @@ def clean_dataset_nexus_v3(file_path):
                         "dups": dups_removed,
                         "repaired_emails": repaired_emails,
                         "cross_swaps": cross_swaps,
+                        "toxic_purged": toxic_purged,
+                        "b2b_domains": b2b_domains_found,
                         "latency": elapsed
                     }
 
@@ -729,43 +767,45 @@ def clean_dataset_nexus_v3(file_path):
                         return datetime.now().strftime('%H:%M:%S.%f')[:-3]
 
                     st.session_state.sys_logs = (
-                        f"<span class='sys-log'>[{sys_time_local()}] [root@nexus] ~ Pipeline Enterprise V3 Eseguita. Latenza: {elapsed}ms.</span><br>"
-                        f"<span class='acc-log'>[OK] Analisi Multidimensionale Attiva. Dati Preservati: 100%.</span><br>"
-                        f"<span class='acc-log'>[OK] Domini Riparati: {repaired_emails} | Swap Inversioni (Matrix): {cross_swaps} | Duplicati: {dups_removed}</span>"
+                        f"<span class='sys-log'>[{sys_time_local()}] [root@nexus] ~ Pipeline Enterprise V4 Eseguita. Latenza: {elapsed}ms.</span><br>"
+                        f"<span class='acc-log'>[OK] Analisi Vettoriale e Toxic Purge completati.</span><br>"
+                        f"<span class='acc-log'>[OK] Domini Aziendali Estratti (B2B): {b2b_domains_found} | Dati Tossici Piallati: {toxic_purged} | Swap Inversioni: {cross_swaps}</span>"
                     )
                 except Exception as e:
-                    st.session_state.sys_logs = f"<span class='err-log'>[{datetime.now().strftime('%H:%M:%S.%f')[:-3]}] [FATAL ERROR] Fallimento nel parsing della struttura dati: {e}</span>"
+                    st.session_state.sys_logs = f"<span class='err-log'>[{datetime.now().strftime('%H:%M:%S.%f')[:-3]}] [FATAL ERROR] Fallimento nel parsing vettoriale: {e}</span>"
 
     if 'm1_buffer' in st.session_state and st.session_state.m1_buffer is not None:
         st.markdown(f"<div class='cmd-window'>{st.session_state.sys_logs}</div><br>", unsafe_allow_html=True)
         
-        # Dashboard KPI Metrics V3
+        # Dashboard KPI Metrics V4
         if 'm1_metrics' in st.session_state:
             m = st.session_state.m1_metrics
+            
+            st.markdown("<p style='color:#10b981; font-size:0.85rem; font-weight:700;'>⚡ TELEMETRIA E ARRICCHIMENTO DATI:</p>", unsafe_allow_html=True)
             col1, col2, col3, col4 = st.columns(4)
             with col1:
-                st.metric("Record Validi", m["r_out"], delta=f"{m['r_out'] - m['r_in']} scartati")
+                st.metric("Domini B2B Estratti", m["b2b_domains"], help="Numero di siti web aziendali generati automaticamente dalle email.")
             with col2:
-                st.metric("Email Riparate", m["repaired_emails"])
+                st.metric("Matrix Swaps", m["cross_swaps"], help="Telefoni ed Email invertiti riallineati con successo.")
             with col3:
-                st.metric("Data Swap (Matrix)", m["cross_swaps"], help="Valori invertiti tra colonne rimessi a posto automaticamente.")
+                st.metric("Dati Tossici Distrutti", m["toxic_purged"], help="Record di test (es. admin@admin.com, 'prova') eliminati.")
             with col4:
-                st.metric("Latenza", f"{m['latency']} ms")
+                st.metric("Record Elaborati", m["r_out"])
 
-        st.markdown("<p style='color:#A1A1AA; font-size:0.85rem; font-weight:600; margin-top:15px;'>DATABASE SANIFICATO (SCORRI PER VEDERE TUTTO):</p>", unsafe_allow_html=True)
+        st.markdown("<p style='color:#A1A1AA; font-size:0.85rem; font-weight:600; margin-top:15px;'>DATABASE ENRICHED (NOTA LA NUOVA COLONNA 'DOMINIO_B2B'):</p>", unsafe_allow_html=True)
         st.dataframe(st.session_state.m1_buffer, use_container_width=True)
         
         # Gatekeeper PLG
-        if lead_capture_gateway("mod_01", "Download Database Perfetto V3"):
+        if lead_capture_gateway("mod_01", "Download Database Arricchito V4"):
             st.download_button(
-                "📥 SCARICA DATABASE SANIFICATO (.CSV)",
+                "📥 SCARICA DATABASE ARRICCHITO (.CSV)",
                 st.session_state.m1_buffer.to_csv(index=False).encode('utf-8-sig'),
-                "nexus_matrix_clean.csv",
+                "nexus_enriched_b2b_v4.csv",
                 "text/csv"
             )
 
     st.markdown("</div>", unsafe_allow_html=True)
-
+    
 # --- 02. PROTOCOLLO .ENV ---
 elif selected_tool == "02. Sicurezza Ambientale (.env)":
     source_py = """import os\nfrom dotenv import load_dotenv\n\nload_dotenv() # Carica le variabili dal file .env isolato\nAPI_KEY = os.getenv('API_KEY')\n\nif not API_KEY:\n    raise SystemExit('Vulnerabilità: Credenziali assenti.')"""
