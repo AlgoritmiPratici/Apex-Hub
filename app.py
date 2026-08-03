@@ -469,8 +469,8 @@ if selected_tool == "01. Normalizzazione Dati (CSV)":
 import numpy as np
 import re
 
-def clean_dataset_nexus_v7_perfection(file_path):
-    # Parsing Blindato Forzato a Stringa
+def clean_dataset_nexus_v8_quantum(file_path):
+    # Parsing Blindato Vettoriale
     try:
         df = pd.read_csv(file_path, sep=',', encoding='utf-8', dtype=str)
         if df.shape[1] <= 1: df = pd.read_csv(file_path, sep=';', encoding='utf-8', dtype=str)
@@ -482,65 +482,77 @@ def clean_dataset_nexus_v7_perfection(file_path):
     # 1. Normalizzazione Intestazioni (Snake Case Assoluto)
     df_clean.columns = [re.sub(r'_+', '_', re.sub(r'[^a-z0-9_]', '_', re.sub(r'[àáâäèéêëìíîïòóôöùúûü]', lambda m: {'à':'a','è':'e','é':'e','ì':'i','ò':'o','ù':'u'}.get(m.group(0), 'a'), str(c).strip().lower()))).strip('_') or 'colonna' for c in df_clean.columns]
 
-    # 2. Pulizia Spazi e NaN Globale
+    # 2. Pulizia Spazi e NaN Vettoriale
     df_clean = df_clean.dropna(how='all')
     for col in df_clean.columns:
         df_clean[col] = df_clean[col].replace([r'^\s*$', 'nan', 'None', 'null', 'NaN', 'N/A', 'n/a'], np.nan, regex=True)
         if df_clean[col].dtype == 'object':
             df_clean[col] = df_clean[col].str.strip().replace(r'\s+', ' ', regex=True)
 
-    # 3. Smart Data Routing (Fusione Telefono/Email incrociata)
+    # 3. Smart Data Routing Vettoriale (Cross-Column Salvage)
     email_cols = [c for c in df_clean.columns if 'mail' in c]
     tel_cols = [c for c in df_clean.columns if any(k in c for k in ['tel', 'phone', 'cell', 'mobile', 'telefono'])]
 
     if email_cols and tel_cols:
         c_m, c_t = email_cols[0], tel_cols[0]
-        for idx in df_clean.index:
-            v_m, v_t = str(df_clean.at[idx, c_m]), str(df_clean.at[idx, c_t])
-            if v_m != 'nan' and '@' not in v_m and len(re.sub(r'[^\d]', '', v_m)) >= 6:
-                if df_clean.at[idx, c_t] == 'nan' or pd.isna(df_clean.at[idx, c_t]):
-                    df_clean.at[idx, c_t] = v_m
-                df_clean.at[idx, c_m] = np.nan
-            if v_t != 'nan' and '@' in v_t:
-                if df_clean.at[idx, c_m] == 'nan' or pd.isna(df_clean.at[idx, c_m]):
-                    df_clean.at[idx, c_m] = v_t
-                df_clean.at[idx, c_t] = np.nan
+        
+        # Maschere booleane per riconoscimento pattern
+        is_m_phone = df_clean[c_m].str.match(r'^[\d\s\+\-\(\)]+$', na=False) & (df_clean[c_m].str.replace(r'\D', '', regex=True).str.len() >= 6)
+        is_t_email = df_clean[c_t].str.contains('@', na=False)
+        m_is_empty = df_clean[c_m].isna() | (df_clean[c_m] == '')
+        t_is_empty = df_clean[c_t].isna() | (df_clean[c_t] == '')
+
+        # Caso 1: Telefono bloccato nella Mail, e Telefono vuoto -> Sposta
+        move_to_t = is_m_phone & t_is_empty
+        df_clean.loc[move_to_t, c_t] = df_clean.loc[move_to_t, c_m]
+        df_clean.loc[move_to_t, c_m] = np.nan
+
+        # Caso 2: Mail bloccata nel Telefono, e Mail vuota -> Sposta
+        move_to_m = is_t_email & m_is_empty
+        df_clean.loc[move_to_m, c_m] = df_clean.loc[move_to_m, c_t]
+        df_clean.loc[move_to_m, c_t] = np.nan
+
+        # Caso 3: Esatto scambio (Telefono in mail E Mail in telefono)
+        mask_swap = is_m_phone & is_t_email
+        if mask_swap.any():
+            df_clean.loc[mask_swap, [c_m, c_t]] = df_clean.loc[mask_swap, [c_t, c_m]].values
 
     # 4. Email Auto-Repair, Firewall & B2B Enrichment
     if email_cols:
         c_m = email_cols[0]
         df_clean[c_m] = df_clean[c_m].str.lower().str.strip()
-        for pattern, target in {r'@gmail?l?\.com$': '@gmail.com', r'@gamil\.com$': '@gmail.com', r'@hotmaill?\.com$': '@hotmail.com'}.items():
+        
+        # Correzione Typo
+        for pattern, target in {r'@gmail?l?\.com$': '@gmail.com', r'@gamil\.com$': '@gmail.com', r'@hotmaill?\.com$': '@hotmail.com', r'@yaho+\.com$': '@yahoo.com', r'@virgilo\.it$': '@virgilio.it'}.items():
             df_clean[c_m] = df_clean[c_m].str.replace(pattern, target, regex=True)
             
+        # Absolute Firewall
         strict_regex = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
-        df_clean[c_m] = df_clean[c_m].where(df_clean[c_m].str.match(strict_regex) | df_clean[c_m].isna(), np.nan)
+        valid_mask = df_clean[c_m].str.match(strict_regex, na=False) | df_clean[c_m].isna()
+        df_clean[c_m] = df_clean[c_m].where(valid_mask, np.nan)
         df_clean.loc[df_clean[c_m].isin(['test@test.com', 'admin@admin.com']), c_m] = np.nan
         
-        if 'dominio_aziendale' in df_clean.columns: df_clean = df_clean.drop('dominio_aziendale', axis=1)
-        free_mails = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'virgilio.it', 'libero.it', 'tiscali.it', 'icloud.com', 'me.com']
-        domains = df_clean[c_m].apply(lambda x: str(x).split('@')[1] if pd.notna(x) and '@' in str(x) else np.nan)
-        df_clean.insert(df_clean.columns.get_loc(c_m) + 1, 'dominio_aziendale', np.where(~domains.isin(free_mails) & domains.notna(), domains, np.nan))
+        # B2B Enrichment
+        if 'dominio_aziendale' in df_clean.columns: df_clean = df_clean.drop(columns=['dominio_aziendale'])
+        free_mails = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'virgilio.it', 'libero.it', 'tiscali.it', 'icloud.com', 'me.com', 'alice.it']
+        domains = df_clean[c_m].str.split('@').str[1]
+        b2b_mask = ~domains.isin(free_mails) & domains.notna()
+        df_clean.insert(df_clean.columns.get_loc(c_m) + 1, 'dominio_aziendale', np.where(b2b_mask, domains, np.nan))
 
-    # 5. Sanificazione Nomi (Anti-Simboli)
-    nome_cols = [c for c in df_clean.columns if any(k in c for k in ['nome', 'cognome', 'name'])]
+    # 5. Sanificazione Nomi Vettoriale
+    nome_cols = [c for c in df_clean.columns if any(k in c for k in ['nome', 'cognome', 'name', 'cliente', 'referente'])]
     for col in nome_cols:
-        # Togli numeri e simboli speciali, lascia lettere, spazi e apostrofi
-        df_clean[col] = df_clean[col].apply(lambda x: re.sub(r'[^a-zA-Z\s\']', '', str(x)) if pd.notna(x) else x)
-        df_clean[col] = df_clean[col].apply(lambda x: str(x).title().strip() if pd.notna(x) and str(x).strip() else np.nan)
-        df_clean.loc[df_clean[col].str.lower().isin(['test', 'prova', 'admin']), col] = np.nan
+        df_clean[col] = df_clean[col].str.replace(r"[^a-zA-Z\s\']", "", regex=True).str.strip().str.title().replace('', np.nan)
+        df_clean.loc[df_clean[col].str.lower().isin(['test', 'prova', 'admin', 'sconosciuto', 'nessuno']), col] = np.nan
 
-    # 6. Standardizzazione Telecom (E.164 Compliance)
+    # 6. Standardizzazione Telecom (E.164 Vettoriale)
     if tel_cols:
         c_t = tel_cols[0]
-        def standardize_phone(val):
-            if pd.isna(val) or val == 'nan': return np.nan
-            num = re.sub(r'[^\d+]', '', str(val)) # tieni solo numeri e +
-            if not num: return np.nan
-            if num.startswith('0039'): num = '+39' + num[4:]
-            elif re.match(r'^3\d{9}$', num): num = '+39' + num # Auto-Iniezione prefisso ITA
-            return num
-        df_clean[c_t] = df_clean[c_t].apply(standardize_phone)
+        s = df_clean[c_t].str.replace(r'[^\d+]', '', regex=True)
+        s = s.str.replace(r'^0039', '+39', regex=True)
+        mask_ita = s.str.match(r'^3\d{9}$', na=False)
+        s = np.where(mask_ita, '+39' + s, s)
+        df_clean[c_t] = pd.Series(s).replace('', np.nan)
 
     # 7. Parsing Valute
     num_cols = [c for c in df_clean.columns if any(k in c for k in ['fatturato', 'importo', 'prezzo', 'revenue', 'totale'])]
@@ -555,33 +567,27 @@ def clean_dataset_nexus_v7_perfection(file_path):
             except: return val
         df_clean[col] = df_clean[col].apply(clean_num)
 
-    # 8. Date 
-    date_cols = [c for c in df_clean.columns if any(k in c for k in ['data', 'date', 'iscrizione', 'created'])]
-    for col in date_cols:
-        try: df_clean[col] = pd.to_datetime(df_clean[col], dayfirst=True, errors='coerce').dt.strftime('%Y-%m-%d').fillna(df_clean[col])
-        except: pass
-
-    # 9. CRM-GRADE MERGE (Squash righe spezzate)
+    # 8. CRM-GRADE MERGE (Squash)
     if nome_cols:
         df_clean['data_count'] = df_clean.notna().sum(axis=1)
-        df_clean = df_clean.sort_values(by='data_count', ascending=False).drop('data_count', axis=1)
+        df_clean = df_clean.sort_values(by=['data_count'], ascending=False).drop(columns=['data_count'])
         df_clean = df_clean.groupby(nome_cols[0], dropna=False, as_index=False).first()
 
-    # 10. Ghost Column Drop & Deduplicazione Finale
-    df_clean = df_clean.dropna(axis=1, how='all')
-    return df_clean.drop_duplicates()"""
+    # 9. Clean-up & Drop
+    df_clean = df_clean.dropna(axis=1, how='all').drop_duplicates()
+    return df_clean"""
 
     render_page_header(
-        "GESTIONE DATI", "Normalizzazione Enterprise & Standardizzazione",
-        "I database disorganizzati uccidono le conversioni e mandano in errore le automazioni. Carica il tuo CSV. Il sistema corregge le email, estrae i domini B2B aziendali, <b>fonde i contatti spezzati su più righe</b> in un unico profilo CRM, e applica lo standard internazionale ai numeri di telefono inserendo i prefissi mancanti.",
-        "Tecnologia Core: Motore Pandas V7. Operazioni: Smart Data Routing, Absolute Regex Firewall, Telecom E.164 Standardization, CRM-Grade Squashing, Ghost Column Auto-Drop.",
+        "GESTIONE DATI", "Enterprise Normalizer & Standardizer V8",
+        "La qualità dei dati determina il ROI delle tue campagne. Carica il tuo archivio CSV. Questo motore vettoriale corregge le email errate, sposta i contatti disallineati, <b>fonde i duplicati frammentati</b> ed estrae i domini web aziendali per il tuo Cold Outreach. Inoltre, inietta automaticamente il prefisso +39 ai cellulari italiani, preparandoli per le API di WhatsApp.",
+        "Tecnologia Core: Motore Pandas V8 (Quantum Vectorization). Operazioni: Smart Matrix Routing, Absolute Regex Firewall, E.164 Telecom Injection, Deep CRM Squashing.",
         source_py
     )
 
     # 👉 [LINK AFFILIAZIONE 1 - AIRTABLE]
     render_affiliate_box(
         "Airtable", 
-        "I numeri di telefono ora sono pronti per i bot di WhatsApp e i domini aziendali sono estratti. Esporta questo file perfetto su Airtable per creare il tuo CRM automatizzato.", 
+        "Ora hai un database standardizzato e arricchito con domini B2B. Esportalo su Airtable per generare pipeline di vendita e gestire le automazioni senza usare codice.", 
         "https://airtable.com", 
         "Crea un account gratuito su Airtable"
     )
@@ -590,8 +596,8 @@ def clean_dataset_nexus_v7_perfection(file_path):
     uploaded_file = st.file_uploader("Trascina il tuo CSV qui", type=["csv"])
 
     if uploaded_file:
-        if st.button("PULISCI, STANDARDIZZA E ARRICCHISCI", type="primary"):
-            with st.spinner("Compilazione pipeline, standardizzazione Telecom e fusione CRM in corso..."):
+        if st.button("ESEGUI STANDARD V8 (QUANTUM ENGINE)", type="primary"):
+            with st.spinner("Analisi vettoriale, allineamento cross-colonna e iniezione prefissi in corso..."):
                 import time
                 import numpy as np
                 import re
@@ -634,40 +640,45 @@ def clean_dataset_nexus_v7_perfection(file_path):
                         if df_clean[col].dtype == 'object':
                             df_clean[col] = df_clean[col].str.strip().replace(r'\s+', ' ', regex=True)
 
-                    # 4. Nomi (Name Purge & Title Case) - Da fare prima per il Merge
+                    # 4. Nomi (Name Purge Vettoriale)
                     nome_cols = [c for c in df_clean.columns if any(k in c for k in ['nome', 'cognome', 'name', 'cliente', 'referente'])]
-                    toxic_names = ['test', 'prova', 'admin', 'sconosciuto', 'nessuno']
                     toxic_purged = 0
                     
                     for col in nome_cols:
                         if col in df_clean.columns:
-                            # Disintegra numeri e simboli speciali nei nomi
-                            df_clean[col] = df_clean[col].apply(lambda x: re.sub(r'[^a-zA-Z\s\']', '', str(x)) if pd.notna(x) else x)
-                            df_clean[col] = df_clean[col].apply(lambda x: str(x).title().strip() if pd.notna(x) and str(x).strip() else np.nan)
-                            
-                            mask_toxic = df_clean[col].str.lower().isin(toxic_names)
+                            # Togli simboli/numeri, title case
+                            df_clean[col] = df_clean[col].str.replace(r"[^a-zA-Z\s\']", "", regex=True).str.strip().str.title().replace('', np.nan)
+                            mask_toxic = df_clean[col].str.lower().isin(['test', 'prova', 'admin', 'sconosciuto', 'nessuno'])
                             toxic_purged += int(mask_toxic.sum())
                             df_clean.loc[mask_toxic, col] = np.nan
 
-                    # 5. SMART DATA ROUTING (Risoluzione Telefono in Email)
+                    # 5. SMART DATA ROUTING (Vettoriale, zero if/else lenti)
                     routed_data = 0
                     email_cols = [c for c in df_clean.columns if 'mail' in c]
                     tel_cols = [c for c in df_clean.columns if any(k in c for k in ['tel', 'phone', 'cell', 'mobile', 'telefono'])]
 
                     if email_cols and tel_cols:
-                        c_m = email_cols[0]
-                        c_t = tel_cols[0]
-                        for idx in df_clean.index:
-                            v_m = str(df_clean.at[idx, c_m])
-                            v_t = str(df_clean.at[idx, c_t])
-                            if v_m != 'nan' and pd.notna(df_clean.at[idx, c_m]) and '@' not in v_m and len(re.sub(r'[^\d]', '', v_m)) >= 6:
-                                if df_clean.at[idx, c_t] == 'nan' or pd.isna(df_clean.at[idx, c_t]): df_clean.at[idx, c_t] = v_m
-                                df_clean.at[idx, c_m] = np.nan
-                                routed_data += 1
-                            if v_t != 'nan' and pd.notna(df_clean.at[idx, c_t]) and '@' in v_t:
-                                if df_clean.at[idx, c_m] == 'nan' or pd.isna(df_clean.at[idx, c_m]): df_clean.at[idx, c_m] = v_t
-                                df_clean.at[idx, c_t] = np.nan
-                                routed_data += 1
+                        c_m, c_t = email_cols[0], tel_cols[0]
+                        
+                        is_m_phone = df_clean[c_m].str.match(r'^[\d\s\+\-\(\)]+$', na=False) & (df_clean[c_m].str.replace(r'\D', '', regex=True).str.len() >= 6)
+                        is_t_email = df_clean[c_t].str.contains('@', na=False)
+                        m_is_empty = df_clean[c_m].isna() | (df_clean[c_m] == '')
+                        t_is_empty = df_clean[c_t].isna() | (df_clean[c_t] == '')
+
+                        move_to_t = is_m_phone & t_is_empty
+                        df_clean.loc[move_to_t, c_t] = df_clean.loc[move_to_t, c_m]
+                        df_clean.loc[move_to_t, c_m] = np.nan
+                        routed_data += int(move_to_t.sum())
+
+                        move_to_m = is_t_email & m_is_empty
+                        df_clean.loc[move_to_m, c_m] = df_clean.loc[move_to_m, c_t]
+                        df_clean.loc[move_to_m, c_t] = np.nan
+                        routed_data += int(move_to_m.sum())
+
+                        mask_swap = is_m_phone & is_t_email
+                        if mask_swap.any():
+                            df_clean.loc[mask_swap, [c_m, c_t]] = df_clean.loc[mask_swap, [c_t, c_m]].values
+                            routed_data += int(mask_swap.sum() * 2)
 
                     # 6. Email Auto-Repair & ABSOLUTE FIREWALL
                     repaired_emails = 0
@@ -685,9 +696,9 @@ def clean_dataset_nexus_v7_perfection(file_path):
                                 repaired_emails += matches
                                 df_clean[c_m] = df_clean[c_m].str.replace(pattern, target, regex=True)
                         
-                        # FIREWALL ASSOLUTO
+                        # FIREWALL ASSOLUTO Vettoriale
                         strict_regex = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
-                        valid_mask = df_clean[c_m].str.match(strict_regex) | df_clean[c_m].isna()
+                        valid_mask = df_clean[c_m].str.match(strict_regex, na=False) | df_clean[c_m].isna()
                         toxic_purged += int((~valid_mask).sum())
                         df_clean[c_m] = df_clean[c_m].where(valid_mask, np.nan)
                         
@@ -697,35 +708,27 @@ def clean_dataset_nexus_v7_perfection(file_path):
                         
                         # Estrazione B2B
                         free_mails = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'virgilio.it', 'libero.it', 'tiscali.it', 'icloud.com', 'me.com', 'alice.it']
-                        domains = df_clean[c_m].apply(lambda x: str(x).split('@')[1] if pd.notna(x) and '@' in str(x) else np.nan)
+                        domains = df_clean[c_m].str.split('@').str[1]
                         b2b_mask = ~domains.isin(free_mails) & domains.notna()
                         b2b_domains_found = int(b2b_mask.sum())
                         
-                        if 'dominio_aziendale' in df_clean.columns: df_clean = df_clean.drop('dominio_aziendale', axis=1)
+                        if 'dominio_aziendale' in df_clean.columns: df_clean = df_clean.drop(columns=['dominio_aziendale'])
                         df_clean.insert(df_clean.columns.get_loc(c_m) + 1, 'dominio_aziendale', np.where(b2b_mask, domains, np.nan))
 
-                    # 7. TELECOM STANDARDIZATION (Nuovo Motore V7)
+                    # 7. TELECOM STANDARDIZATION (Motore Quantum)
                     telecom_standardized = 0
                     if tel_cols:
                         c_t = tel_cols[0]
-                        def standardize_phone(val):
-                            nonlocal telecom_standardized
-                            if pd.isna(val) or val == 'nan': return np.nan
-                            num = re.sub(r'[^\d+]', '', str(val))
-                            if not num: return np.nan
-                            
-                            # Logica di iniezione prefisso
-                            original = num
-                            if num.startswith('0039'): 
-                                num = '+39' + num[4:]
-                            elif re.match(r'^3\d{9}$', num): 
-                                num = '+39' + num
-                                
-                            if original != num:
-                                telecom_standardized += 1
-                            return num
-                            
-                        df_clean[c_t] = df_clean[c_t].apply(standardize_phone)
+                        orig_tel = df_clean[c_t].copy()
+                        
+                        s = df_clean[c_t].str.replace(r'[^\d+]', '', regex=True)
+                        s = s.str.replace(r'^0039', '+39', regex=True)
+                        mask_ita = s.str.match(r'^3\d{9}$', na=False)
+                        s = np.where(mask_ita, '+39' + s, s)
+                        
+                        df_clean[c_t] = pd.Series(s).replace('', np.nan)
+                        # Conta differenze ignorando NaN
+                        telecom_standardized = int((df_clean[c_t].fillna('') != orig_tel.fillna('')).sum())
 
                     # 8. Valute Parser
                     num_cols = [c for c in df_clean.columns if any(k in c for k in ['fatturato', 'importo', 'prezzo', 'revenue', 'totale'])]
@@ -740,19 +743,25 @@ def clean_dataset_nexus_v7_perfection(file_path):
                                 try: return float(v)
                                 except: return val
                             df_clean[col] = df_clean[col].apply(clean_num)
+                            
+                    # 9. Date Standardization
+                    date_cols = [c for c in df_clean.columns if any(k in c for k in ['data', 'date', 'iscrizione', 'created'])]
+                    for col in date_cols:
+                        try: df_clean[col] = pd.to_datetime(df_clean[col], dayfirst=True, errors='coerce').dt.strftime('%Y-%m-%d').fillna(df_clean[col])
+                        except: pass
 
-                    # 9. CRM-GRADE RECORD MERGING
+                    # 10. CRM-GRADE RECORD MERGING (Squash Assoluto)
                     squashed_records = 0
                     if nome_cols:
                         c_n = nome_cols[0]
                         r_before = len(df_clean)
                         df_clean['data_count'] = df_clean.notna().sum(axis=1)
-                        df_clean = df_clean.sort_values(by='data_count', ascending=False).drop('data_count', axis=1)
+                        df_clean = df_clean.sort_values(by=['data_count'], ascending=False).drop(columns=['data_count'])
                         df_clean = df_clean.groupby(c_n, dropna=False, as_index=False).first()
                         squashed_records = r_before - len(df_clean)
 
-                    # 10. Ghost Drop & Deduplicazione Residua
-                    df_clean = df_clean.dropna(axis=1, how='all') # Elimina colonne completamente vuote
+                    # 11. Ghost Drop & Deduplicazione Residua
+                    df_clean = df_clean.dropna(axis=1, how='all')
                     r_before_dedup = len(df_clean)
                     df_clean = df_clean.drop_duplicates()
                     dups_removed = (r_before_dedup - len(df_clean)) + squashed_records
@@ -772,11 +781,11 @@ def clean_dataset_nexus_v7_perfection(file_path):
                     def sys_time_local(): return datetime.now().strftime('%H:%M:%S')
 
                     st.session_state.sys_logs = (
-                        f"<span class='sys-log'>[{sys_time_local()}] - Sistema: Normalizzazione V7 Perfection completata in {elapsed}ms.</span><br>"
-                        f"<span class='acc-log'>✔ Prefissi telefonici standardizzati. Nomi e colonne ripulite. Database pronto per invio API.</span>"
+                        f"<span class='sys-log'>[{sys_time_local()}] - Sistema: Operazione Vettoriale V8 completata in soli {elapsed}ms.</span><br>"
+                        f"<span class='acc-log'>✔ Prefissi telefonici inniettati (+39). Contatti frammentati compressi. Database CRM-Ready.</span>"
                     )
                 except Exception as e:
-                    st.session_state.sys_logs = f"<span class='err-log'>[{datetime.now().strftime('%H:%M:%S')}] ERRORE DI SISTEMA: {e}</span>"
+                    st.session_state.sys_logs = f"<span class='err-log'>[{datetime.now().strftime('%H:%M:%S')}] ERRORE STRUTTURALE: {e}</span>"
 
     if 'm1_buffer' in st.session_state and st.session_state.m1_buffer is not None:
         st.markdown(f"<div class='cmd-window'>{st.session_state.sys_logs}</div><br>", unsafe_allow_html=True)
@@ -784,25 +793,25 @@ def clean_dataset_nexus_v7_perfection(file_path):
         if 'm1_metrics' in st.session_state:
             m = st.session_state.m1_metrics
             
-            st.markdown("<p style='color:#10b981; font-size:0.85rem; font-weight:700;'>📊 METRICHE DI ECCELLENZA DEL DATABASE:</p>", unsafe_allow_html=True)
+            st.markdown("<p style='color:#10b981; font-size:0.85rem; font-weight:700;'>⚡ METRICHE DI ARRICCHIMENTO DATABASE:</p>", unsafe_allow_html=True)
             col1, col2, col3, col4 = st.columns(4)
             with col1:
-                st.metric("Numeri Standardizzati", m["telecom"], help="Prefissi (es. +39) inseriti automaticamente per allineamento internazionale.")
+                st.metric("Telefoni Formattati", m["telecom"], help="Spazi rimossi e prefisso internazionale (+39) iniettato per compatibilità WhatsApp/SMS.")
             with col2:
-                st.metric("Contatti Fusi (CRM Merge)", m["squashed"], help="Righe frammentate unite in un singolo record intelligente.")
+                st.metric("Contatti Uniti", m["squashed"], help="Dati frammentati su righe doppie riassemblati in un unico profilo CRM completo.")
             with col3:
-                st.metric("Anomalie Distrutte", m["toxic_purged"], help="Nomi falsi, email sintatticamente errate e dati spazzatura eliminati.")
+                st.metric("Dati Spazzatura Eliminati", m["toxic_purged"], help="Nomi falsi (es. 'admin'), simboli speciali e domini fittizi piallati.")
             with col4:
-                st.metric("Domini B2B Generati", m["b2b_domains"])
+                st.metric("Aziende B2B Estratte", m["b2b_domains"], help="Nuova colonna generata automaticamente per isolare i prospect aziendali.")
 
         st.markdown("<p style='color:#A1A1AA; font-size:0.85rem; font-weight:600; margin-top:15px;'>ANTEPRIMA DEL DATABASE (Scorri a destra per visualizzare i telefoni allineati):</p>", unsafe_allow_html=True)
         st.dataframe(st.session_state.m1_buffer, use_container_width=True)
         
-        if lead_capture_gateway("mod_01", "Scarica Database Ottimizzato V7"):
+        if lead_capture_gateway("mod_01", "Scarica Database Premium V8"):
             st.download_button(
                 "📥 SCARICA DATABASE PERFETTO (.CSV)",
                 st.session_state.m1_buffer.to_csv(index=False).encode('utf-8-sig'),
-                "database_perfezionato_v7.csv",
+                "database_premium_v8.csv",
                 "text/csv"
             )
 
