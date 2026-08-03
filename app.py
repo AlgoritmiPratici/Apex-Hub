@@ -1092,92 +1092,145 @@ def calculate_true_burn_rate(legacy_stack, operational_debt):
     
     burn_rate = 0
     hidden_costs = 0
-    soluzioni = []
-    insights_operativi = []
     
-    # Calcoli Logica Operativa (Costi Occulti Mensili)
+    # Variabili Psicologiche: Teaser visibili vs Soluzioni Segrete
+    teasers_live = []
+    soluzioni_sbloccate = []
+    
+    # -------------------------------------------------------------
+    # LOGICA 1: DEBITO OPERATIVO E PROCESSI
+    # -------------------------------------------------------------
     if uso_excel:
         hidden_costs += 450
-        insights_operativi.append("⚠️ **Data Silos:** L'uso esclusivo di Excel per i dati genera un costo occulto di ~450€/mese in tempo perso per data-entry, sovrascritture e ricerca.")
+        teasers_live.append("⚠️ **Data Silos (Excel):** Un buco nero operativo. Paghi stipendi per data-entry manuale invece di automatizzare flussi tramite database relazionali.")
+        soluzioni_sbloccate.append("✅ **Database:** Centralizza i dati e azzera il copia-incolla migrando da Excel a **NocoDB** o **Baserow (Self-Hosted)**.")
+        
     if no_crm_automation:
         hidden_costs += 600
-        insights_operativi.append("⚠️ **Lead Leakage:** Senza automazioni CRM, perdi follow-up critici sistematicamente. Costo stimato: 600€/mese in mancate vendite (Pipeline Loss).")
+        teasers_live.append("⚠️ **Lead Leakage (No CRM):** Perdi follow-up sistematicamente. I competitor chiudono contratti e incassano fondi sui lead che la tua azienda dimentica di ricontattare.")
+        soluzioni_sbloccate.append("✅ **Automazione Vendite:** Implementa workflow di follow-up asincrono collegando **n8n** a un CRM Open Source come **ERPNext**.")
+        
     if piu_5_dip:
         hidden_costs += 800
-        insights_operativi.append("⚠️ **Frizione di Scala:** Con più di 5 collaboratori e assenza di processi centralizzati, l'overhead gestionale brucia circa 800€/mese.")
+        teasers_live.append("⚠️ **Frizione di Scala (Team >5):** Senza protocolli standardizzati e centralizzati, ogni dipendente inserito moltiplica esponenzialmente il caos gestionale e l'inefficienza.")
+        soluzioni_sbloccate.append("✅ **Project Management:** Standardizza l'operatività del team migrando su piattaforme autogestite come **Plane** o **Focalboard**.")
+        
     if fatt_manuale:
         hidden_costs += 300
-        insights_operativi.append("⚠️ **Collo di Bottiglia Amministrativo:** La compilazione manuale frena la velocità di incasso. Costo operativo stimato: 300€/mese.")
+        teasers_live.append("⚠️ **Collo di Bottiglia (Amministrazione):** L'emissione manuale dei documenti paralizza il flusso di cassa e rallenta l'acquisizione della liquidità B2B.")
+        soluzioni_sbloccate.append("✅ **Billing Automation:** Integra webhook di pagamento automatico B2B sfruttando le API di **Stripe** combinate con **Invoice Ninja**.")
+        
     if no_kpi:
         hidden_costs += 400
-        insights_operativi.append("⚠️ **Navigazione a Vista:** Senza Dashboard KPI in tempo reale, perdi reattività sulle decisioni. Costo occulto stimato: 400€/mese in inefficienze strategiche.")
+        teasers_live.append("⚠️ **Navigazione a Vista (No KPI):** Guidare un'azienda senza cruscotti telemetrici in tempo reale è un suicidio strategico. I dati non letti sono margini persi.")
+        soluzioni_sbloccate.append("✅ **Data Visualization:** Connetti i tuoi flussi a **Metabase** per estrarre cruscotti KPI interattivi a costo zero.")
+        
     if team_caos:
         hidden_costs += 350
-        insights_operativi.append("⚠️ **Dispersione Informativa:** Il caos comunicativo (solo WhatsApp/Email) frammenta i processi. Costo occulto stimato: 350€/mese in tempo di allineamento perso.")
+        teasers_live.append("⚠️ **Dispersione Informativa (WhatsApp/Email):** Comunicazioni frammentate distruggono la produttività. Il team brucia ore per allinearsi su task non documentate.")
+        soluzioni_sbloccate.append("✅ **Business Chat:** Elimina WhatsApp. Migra le comunicazioni aziendali su **Mattermost (Self-Hosted)**, garantendoti sicurezza e ricerca interna istantanea.")
         
-    # Calcoli Logica SaaS e Soluzioni (Mercato ITA/Internazionale)
+    # -------------------------------------------------------------
+    # LOGICA 2: SOFTWARE SAAS
+    # -------------------------------------------------------------
     if zapier: 
         burn_rate += 199 
-        soluzioni.append("✅ **Automazioni:** Sostituisci Zapier/Make con **n8n (Self-Hosted)**. Workflow e task eseguiti illimitati a costo zero.")
+        teasers_live.append("💸 **Automazioni (Zapier/Make):** Paghi una 'tassa' per ogni singola esecuzione. Le architetture avanzate bypassano i piani tariffari eseguendo workflow infiniti a costo zero.")
+        soluzioni_sbloccate.append("✅ Sostituisci Zapier/Make con **n8n (Self-Hosted)**. Nessun limite di task o esecuzioni mensili.")
+        
     if hubspot: 
         burn_rate += 150 
-        soluzioni.append("✅ **CRM Base:** Sostituisci HubSpot con **Supabase (PostgreSQL Serverless)** o un CRM Open Source come ERPNext a costo zero.")
+        teasers_live.append("💸 **CRM Monolitico (HubSpot/Salesforce):** Stai finanziando il marketing di un colosso SaaS. Esistono architetture serverless gratuite che replicano le stesse identiche pipeline.")
+        soluzioni_sbloccate.append("✅ Sostituisci HubSpot con **Supabase (PostgreSQL Serverless)** o **Twenty CRM** a costo zero.")
+        
     if mail: 
         burn_rate += 80 
-        soluzioni.append("✅ **Email Marketing:** Migra a **Mautic (Open Source) collegato ad AWS SES** (paghi 0.10€ ogni 1.000 email inviate, non paghi per i contatti).")
+        teasers_live.append("💸 **Tassa sui Contatti (Mailchimp/ActiveC):** Paghi per possedere i tuoi stessi lead. I protocolli Open Source permettono contatti illimitati, pagando solo pochi centesimi per il traffico email.")
+        soluzioni_sbloccate.append("✅ Migra l'Email Marketing su **Mautic (Open Source) + AWS SES** (0.10€ ogni 1.000 email, nessun limite di iscritti).")
+        
     if funnel: 
         burn_rate += 197 
-        soluzioni.append("✅ **Landing & Funnel:** Sostituisci i page builder costosi con **WordPress + Ghost (Headless CMS)** su server dedicato.")
+        teasers_live.append("💸 **Affitto Digitale (ClickFunnels/Kajabi):** Costi fissi spropositati per landing page bloccate nei loro server. Un CMS proprietario azzera le fee e decuplica la velocità di caricamento.")
+        soluzioni_sbloccate.append("✅ Sostituisci i Page Builder costosi con **WordPress + Ghost (Headless CMS)** su un server VDS proprietario.")
+        
     if shopify: 
         burn_rate += 79 
-        soluzioni.append("✅ **eCommerce:** Abbatti gli abbonamenti e le fee aggiuntive migrando su **WooCommerce + Stripe** (0 costi fissi di piattaforma).")
+        teasers_live.append("💸 **Fee Transazionali (Shopify/Wix):** Abbonamenti mensili e percentuali rubate sulle tue vendite. Esistono stack e-commerce di proprietà a zero costi fissi.")
+        soluzioni_sbloccate.append("✅ Abbatti gli abbonamenti eCommerce migrando la struttura su **WooCommerce + Stripe**.")
+        
     if manychat: 
         burn_rate += 45 
-        soluzioni.append("✅ **Chatbot AI:** Sostituisci ManyChat con **Typebot (Open Source)** a costo zero.")
+        teasers_live.append("💸 **Traffico Vincolato (ManyChat):** Abbonamenti crescenti all'aumentare dei tuoi messaggi. L'integrazione di motori bot Open Source abbatte questo debito operativo (OPEX) a zero.")
+        soluzioni_sbloccate.append("✅ Sostituisci i Chatbot con **Typebot (Open Source)** o **Flowise**.")
+        
     if calendly: 
         burn_rate += 30 
-        soluzioni.append("✅ **Booking:** Sostituisci Calendly con **Cal.com (Self-Hosted)** a costo zero.")
+        teasers_live.append("💸 **Micro-Emorragie (Calendly/Doodle):** Un costo apparentemente innocuo che, moltiplicato per ogni membro del team, drena liquidità innecessaria.")
+        soluzioni_sbloccate.append("✅ Sostituisci le agende e i form con **Cal.com (Self-Hosted)** a costo zero per tutto il team.")
+        
     if zendesk: 
         burn_rate += 150 
-        soluzioni.append("✅ **Customer Care:** Sostituisci Zendesk con **Chatwoot (Open Source)**. Omnicanalità a costo zero.")
+        teasers_live.append("💸 **Licenze Operatore (Zendesk/Intercom):** Modello di pricing letale per la scalabilità. L'omnicanalità autogestita scala senza imporre fee aggiuntive per dipendente.")
+        soluzioni_sbloccate.append("✅ Sostituisci il Customer Care con **Chatwoot (Open Source)**. Operatori illimitati a costo zero.")
+        
     if vimeo: 
         burn_rate += 60 
-        soluzioni.append("✅ **Hosting Video:** Migra il tuo materiale formativo su **Cloudflare Stream** o **Bunny.net** a un decimo del costo.")
+        teasers_live.append("💸 **Hosting Sovrapprezzato (Vimeo/Wistia):** Paghi il brand. Reti CDN ingegnerizzate permettono di ospitare stream video premium a una frazione centesimale del costo attuale.")
+        soluzioni_sbloccate.append("✅ Migra il tuo materiale video (es. corsi) su **Cloudflare Stream** o **Bunny.net** (paghi a consumo reale, quasi zero).")
+        
     if airtable: 
         burn_rate += 50 
-        soluzioni.append("✅ **Database NoCode:** Sostituisci Airtable con **NocoDB (Open Source)** a costo zero.")
+        teasers_live.append("💸 **Barriere Dati (Airtable/Monday):** Limitazioni sui record e costi per postazione. Un database NoCode self-hosted demolisce questi vincoli tecnici ed economici.")
+        soluzioni_sbloccate.append("✅ Sostituisci i Database strutturati con **NocoDB (Open Source)** a costo zero.")
+        
     if fatture_cloud: 
         burn_rate += 25 
-        soluzioni.append("✅ **Amministrazione:** Elimina le fee annuali con **Invoice Ninja (Self-Hosted)** per una fatturazione B2B senza limiti.")
+        teasers_live.append("💸 **Oligopolio Contabile (Fatture in Cloud/Aruba):** Fee annuali innecessarie per funzioni amministrative base. L'infrastruttura autonoma rende la fatturazione illimitata.")
+        soluzioni_sbloccate.append("✅ Elimina le fee ricorrenti con **Invoice Ninja (Self-Hosted)** per una fatturazione B2B senza limitazioni.")
+        
     if workspace: 
         burn_rate += 70 
-        soluzioni.append("✅ **Cloud Aziendale:** Sostituisci Google/Microsoft con **Nextcloud** (Archiviazione, Documenti e Video-Call sul tuo server privato gratuito).")
+        teasers_live.append("💸 **Cloud Tax (Google Workspace/MS 365):** Tassa mensile perpetua per l'archiviazione dati. Il cloud aziendale privato garantisce sovranità ed elimina le rendite di Big Tech.")
+        soluzioni_sbloccate.append("✅ Sostituisci Google Drive/Docs con **Nextcloud** (Archiviazione, Documenti e Video-Call sul tuo server privato gratuito).")
 
     total_tco = burn_rate + hidden_costs
     
-    # IL TEASER (Visibile a tutti)
+    # -------------------------------------------------------------
+    # RENDER TEASER IN TEMPO REALE (Prima del Gate)
+    # -------------------------------------------------------------
+    if teasers_live:
+        st.markdown("<br><h5 style='color:#F59E0B; margin-bottom: 15px;'>🚨 LOG DIAGNOSTICO IN TEMPO REALE (ANALISI DELLE PERDITE):</h5>", unsafe_allow_html=True)
+        for teaser in teasers_live:
+            # Box ambra dal design premium
+            st.markdown(f"""
+            <div style='background-color: rgba(245, 158, 11, 0.05); border-left: 4px solid #F59E0B; padding: 12px 15px; margin-bottom: 10px; border-radius: 4px;'>
+                <span style='color:#E4E4E7; font-size: 0.95rem; line-height: 1.4;'>{teaser}</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+    # METRICHE FINANZIARIE
     st.markdown("---")
-    st.markdown("<h4 style='color:#FAFAFA;'>IL TUO DIAGNOSTICO FINANZIARIO:</h4>", unsafe_allow_html=True)
+    st.markdown("<h4 style='color:#FAFAFA;'>IL TUO TOTAL COST OF OWNERSHIP (TCO):</h4>", unsafe_allow_html=True)
     c_res1, c_res2, c_res3 = st.columns(3)
     c_res1.metric("SaaS Burn Rate (Spesa)", f"€ {burn_rate} / mese")
     c_res2.metric("Debito Operativo (Inefficienze)", f"€ {hidden_costs} / mese", delta="Perdita Stimata", delta_color="inverse")
     c_res3.metric("Capitale Disperso Totale", f"€ {total_tco} / mese")
     
     if total_tco > 0:
-        # IL LOCK (Integrazione pulita con la tua architettura globale)
-        # Sfruttiamo la funzione nativa che gestisce già Make.com, Iubenda e il Double Opt-In
-        if lead_capture_gateway("mod_06", "Sblocca Roadmap di Migrazione Open Source"):
-            st.markdown("<br><h4 style='color:#FAFAFA;'>DIAGNOSTICA AVANZATA E ROADMAP DI MIGRAZIONE</h4>", unsafe_allow_html=True)
+        # -------------------------------------------------------------
+        # IL LOCK: SBLOCCO DEI NOMI DEI SOFTWARE OPEN SOURCE
+        # -------------------------------------------------------------
+        st.markdown("<br>", unsafe_allow_html=True)
+        if lead_capture_gateway("mod_06", "Sblocca Nomi Software e Roadmap"):
+            st.markdown("<h4 style='color:#10B981; margin-top: 1rem; margin-bottom: 15px;'>🛠️ PROTOCOLLO DI MIGRAZIONE (STACK SBLOCCATO):</h4>", unsafe_allow_html=True)
             
-            if insights_operativi:
-                st.markdown("<p style='color:#F59E0B; font-weight:600; margin-top:1rem;'>🚨 CRITICITÀ OPERATIVE RILEVATE:</p>", unsafe_allow_html=True)
-                for insight in insights_operativi:
-                    st.markdown(insight)
-                
-            if soluzioni:
-                st.markdown("<p style='color:#10B981; font-weight:600; margin-top:1.5rem;'>🛠️ PROTOCOLLO DI MIGRAZIONE SAAS (STACK SOSTITUTIVO):</p>", unsafe_allow_html=True)
-                for sol in soluzioni:
-                    st.markdown(sol)
+            for sol in soluzioni_sbloccate:
+                # Box verde smeraldo premium per le soluzioni
+                st.markdown(f"""
+                <div style='background-color: rgba(16, 185, 129, 0.05); border-left: 4px solid #10B981; padding: 12px 15px; margin-bottom: 10px; border-radius: 4px;'>
+                    <span style='color:#FAFAFA; font-size: 0.95rem;'>{sol}</span>
+                </div>
+                """, unsafe_allow_html=True)
                     
     st.markdown("</div>", unsafe_allow_html=True)
 
