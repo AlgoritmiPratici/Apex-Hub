@@ -1097,38 +1097,41 @@ def calculate_true_burn_rate(legacy_stack, operational_debt):
     teasers_live = []
     soluzioni_sbloccate = []
     
+    # Stile CSS per i link inline (Premium UX)
+    link_style = "color:#34D399; font-weight:bold; text-decoration:underline;"
+    
     # -------------------------------------------------------------
     # LOGICA 1: DEBITO OPERATIVO E PROCESSI
     # -------------------------------------------------------------
     if uso_excel:
         hidden_costs += 450
         teasers_live.append("⚠️ **Data Silos (Excel):** Un buco nero operativo. Paghi stipendi per data-entry manuale invece di automatizzare flussi tramite database relazionali.")
-        soluzioni_sbloccate.append("✅ **Database:** Centralizza i dati e azzera il copia-incolla migrando da Excel a **NocoDB** o **Baserow (Self-Hosted)**.")
+        soluzioni_sbloccate.append(f"✅ **Database:** Centralizza i dati e azzera il copia-incolla migrando da Excel a <a href='https://nocodb.com' target='_blank' style='{link_style}'>NocoDB</a> o <a href='https://baserow.io' target='_blank' style='{link_style}'>Baserow (Self-Hosted)</a>.")
         
     if no_crm_automation:
         hidden_costs += 600
         teasers_live.append("⚠️ **Lead Leakage (No CRM):** Perdi follow-up sistematicamente. I competitor chiudono contratti e incassano fondi sui lead che la tua azienda dimentica di ricontattare.")
-        soluzioni_sbloccate.append("✅ **Automazione Vendite:** Implementa workflow di follow-up asincrono collegando **n8n** a un CRM Open Source come **ERPNext**.")
+        soluzioni_sbloccate.append(f"✅ **Automazione Vendite:** Implementa workflow di follow-up asincrono collegando <a href='https://n8n.io' target='_blank' style='{link_style}'>n8n</a> a un CRM Open Source come <a href='https://erpnext.com' target='_blank' style='{link_style}'>ERPNext</a>.")
         
     if piu_5_dip:
         hidden_costs += 800
         teasers_live.append("⚠️ **Frizione di Scala (Team >5):** Senza protocolli standardizzati e centralizzati, ogni dipendente inserito moltiplica esponenzialmente il caos gestionale e l'inefficienza.")
-        soluzioni_sbloccate.append("✅ **Project Management:** Standardizza l'operatività del team migrando su piattaforme autogestite come **Plane** o **Focalboard**.")
+        soluzioni_sbloccate.append(f"✅ **Project Management:** Standardizza l'operatività del team migrando su piattaforme autogestite come <a href='https://plane.so' target='_blank' style='{link_style}'>Plane</a> o <a href='https://www.focalboard.com' target='_blank' style='{link_style}'>Focalboard</a>.")
         
     if fatt_manuale:
         hidden_costs += 300
         teasers_live.append("⚠️ **Collo di Bottiglia (Amministrazione):** L'emissione manuale dei documenti paralizza il flusso di cassa e rallenta l'acquisizione della liquidità B2B.")
-        soluzioni_sbloccate.append("✅ **Billing Automation:** Integra webhook di pagamento automatico B2B sfruttando le API di **Stripe** combinate con **Invoice Ninja**.")
+        soluzioni_sbloccate.append(f"✅ **Billing Automation:** Integra webhook di pagamento automatico B2B sfruttando le API di <a href='https://stripe.com' target='_blank' style='{link_style}'>Stripe</a> combinate con <a href='https://invoiceninja.com' target='_blank' style='{link_style}'>Invoice Ninja</a>.")
         
     if no_kpi:
         hidden_costs += 400
         teasers_live.append("⚠️ **Navigazione a Vista (No KPI):** Guidare un'azienda senza cruscotti telemetrici in tempo reale è un suicidio strategico. I dati non letti sono margini persi.")
-        soluzioni_sbloccate.append("✅ **Data Visualization:** Connetti i tuoi flussi a **Metabase** per estrarre cruscotti KPI interattivi a costo zero.")
+        soluzioni_sbloccate.append(f"✅ **Data Visualization:** Connetti i tuoi flussi a <a href='https://www.metabase.com' target='_blank' style='{link_style}'>Metabase</a> per estrarre cruscotti KPI interattivi a costo zero.")
         
     if team_caos:
         hidden_costs += 350
         teasers_live.append("⚠️ **Dispersione Informativa (WhatsApp/Email):** Comunicazioni frammentate distruggono la produttività. Il team brucia ore per allinearsi su task non documentate.")
-        soluzioni_sbloccate.append("✅ **Business Chat:** Elimina WhatsApp. Migra le comunicazioni aziendali su **Mattermost (Self-Hosted)**, garantendoti sicurezza e ricerca interna istantanea.")
+        soluzioni_sbloccate.append(f"✅ **Business Chat:** Elimina WhatsApp. Migra le comunicazioni aziendali su <a href='https://mattermost.com' target='_blank' style='{link_style}'>Mattermost (Self-Hosted)</a>, garantendoti sicurezza e ricerca interna istantanea.")
         
     # -------------------------------------------------------------
     # LOGICA 2: SOFTWARE SAAS
@@ -1136,62 +1139,62 @@ def calculate_true_burn_rate(legacy_stack, operational_debt):
     if zapier: 
         burn_rate += 199 
         teasers_live.append("💸 **Automazioni (Zapier/Make):** Paghi una 'tassa' per ogni singola esecuzione. Le architetture avanzate bypassano i piani tariffari eseguendo workflow infiniti a costo zero.")
-        soluzioni_sbloccate.append("✅ Sostituisci Zapier/Make con **n8n (Self-Hosted)**. Nessun limite di task o esecuzioni mensili.")
+        soluzioni_sbloccate.append(f"✅ Sostituisci Zapier/Make con <a href='https://n8n.io' target='_blank' style='{link_style}'>n8n (Self-Hosted)</a>. Nessun limite di task o esecuzioni mensili.")
         
     if hubspot: 
         burn_rate += 150 
         teasers_live.append("💸 **CRM Monolitico (HubSpot/Salesforce):** Stai finanziando il marketing di un colosso SaaS. Esistono architetture serverless gratuite che replicano le stesse identiche pipeline.")
-        soluzioni_sbloccate.append("✅ Sostituisci HubSpot con **Supabase (PostgreSQL Serverless)** o **Twenty CRM** a costo zero.")
+        soluzioni_sbloccate.append(f"✅ Sostituisci HubSpot con <a href='https://supabase.com' target='_blank' style='{link_style}'>Supabase (PostgreSQL Serverless)</a> o <a href='https://twenty.com' target='_blank' style='{link_style}'>Twenty CRM</a> a costo zero.")
         
     if mail: 
         burn_rate += 80 
         teasers_live.append("💸 **Tassa sui Contatti (Mailchimp/ActiveC):** Paghi per possedere i tuoi stessi lead. I protocolli Open Source permettono contatti illimitati, pagando solo pochi centesimi per il traffico email.")
-        soluzioni_sbloccate.append("✅ Migra l'Email Marketing su **Mautic (Open Source) + AWS SES** (0.10€ ogni 1.000 email, nessun limite di iscritti).")
+        soluzioni_sbloccate.append(f"✅ Migra l'Email Marketing su <a href='https://www.mautic.org' target='_blank' style='{link_style}'>Mautic (Open Source)</a> + <a href='https://aws.amazon.com/ses/' target='_blank' style='{link_style}'>AWS SES</a> (0.10€ ogni 1.000 email, nessun limite di iscritti).")
         
     if funnel: 
         burn_rate += 197 
         teasers_live.append("💸 **Affitto Digitale (ClickFunnels/Kajabi):** Costi fissi spropositati per landing page bloccate nei loro server. Un CMS proprietario azzera le fee e decuplica la velocità di caricamento.")
-        soluzioni_sbloccate.append("✅ Sostituisci i Page Builder costosi con **WordPress + Ghost (Headless CMS)** su un server VDS proprietario.")
+        soluzioni_sbloccate.append(f"✅ Sostituisci i Page Builder costosi con <a href='https://wordpress.org' target='_blank' style='{link_style}'>WordPress</a> + <a href='https://ghost.org' target='_blank' style='{link_style}'>Ghost (Headless CMS)</a> su un server VDS proprietario.")
         
     if shopify: 
         burn_rate += 79 
         teasers_live.append("💸 **Fee Transazionali (Shopify/Wix):** Abbonamenti mensili e percentuali rubate sulle tue vendite. Esistono stack e-commerce di proprietà a zero costi fissi.")
-        soluzioni_sbloccate.append("✅ Abbatti gli abbonamenti eCommerce migrando la struttura su **WooCommerce + Stripe**.")
+        soluzioni_sbloccate.append(f"✅ Abbatti gli abbonamenti eCommerce migrando la struttura su <a href='https://woocommerce.com' target='_blank' style='{link_style}'>WooCommerce</a> + <a href='https://stripe.com' target='_blank' style='{link_style}'>Stripe</a>.")
         
     if manychat: 
         burn_rate += 45 
         teasers_live.append("💸 **Traffico Vincolato (ManyChat):** Abbonamenti crescenti all'aumentare dei tuoi messaggi. L'integrazione di motori bot Open Source abbatte questo debito operativo (OPEX) a zero.")
-        soluzioni_sbloccate.append("✅ Sostituisci i Chatbot con **Typebot (Open Source)** o **Flowise**.")
+        soluzioni_sbloccate.append(f"✅ Sostituisci i Chatbot con <a href='https://typebot.io' target='_blank' style='{link_style}'>Typebot (Open Source)</a> o <a href='https://flowiseai.com' target='_blank' style='{link_style}'>Flowise</a>.")
         
     if calendly: 
         burn_rate += 30 
         teasers_live.append("💸 **Micro-Emorragie (Calendly/Doodle):** Un costo apparentemente innocuo che, moltiplicato per ogni membro del team, drena liquidità innecessaria.")
-        soluzioni_sbloccate.append("✅ Sostituisci le agende e i form con **Cal.com (Self-Hosted)** a costo zero per tutto il team.")
+        soluzioni_sbloccate.append(f"✅ Sostituisci le agende e i form con <a href='https://cal.com' target='_blank' style='{link_style}'>Cal.com (Self-Hosted)</a> a costo zero per tutto il team.")
         
     if zendesk: 
         burn_rate += 150 
         teasers_live.append("💸 **Licenze Operatore (Zendesk/Intercom):** Modello di pricing letale per la scalabilità. L'omnicanalità autogestita scala senza imporre fee aggiuntive per dipendente.")
-        soluzioni_sbloccate.append("✅ Sostituisci il Customer Care con **Chatwoot (Open Source)**. Operatori illimitati a costo zero.")
+        soluzioni_sbloccate.append(f"✅ Sostituisci il Customer Care con <a href='https://www.chatwoot.com' target='_blank' style='{link_style}'>Chatwoot (Open Source)</a>. Operatori illimitati a costo zero.")
         
     if vimeo: 
         burn_rate += 60 
         teasers_live.append("💸 **Hosting Sovrapprezzato (Vimeo/Wistia):** Paghi il brand. Reti CDN ingegnerizzate permettono di ospitare stream video premium a una frazione centesimale del costo attuale.")
-        soluzioni_sbloccate.append("✅ Migra il tuo materiale video (es. corsi) su **Cloudflare Stream** o **Bunny.net** (paghi a consumo reale, quasi zero).")
+        soluzioni_sbloccate.append(f"✅ Migra il tuo materiale video (es. corsi) su <a href='https://www.cloudflare.com/products/cloudflare-stream/' target='_blank' style='{link_style}'>Cloudflare Stream</a> o <a href='https://bunny.net' target='_blank' style='{link_style}'>Bunny.net</a> (paghi a consumo reale, quasi zero).")
         
     if airtable: 
         burn_rate += 50 
         teasers_live.append("💸 **Barriere Dati (Airtable/Monday):** Limitazioni sui record e costi per postazione. Un database NoCode self-hosted demolisce questi vincoli tecnici ed economici.")
-        soluzioni_sbloccate.append("✅ Sostituisci i Database strutturati con **NocoDB (Open Source)** a costo zero.")
+        soluzioni_sbloccate.append(f"✅ Sostituisci i Database strutturati con <a href='https://nocodb.com' target='_blank' style='{link_style}'>NocoDB (Open Source)</a> a costo zero.")
         
     if fatture_cloud: 
         burn_rate += 25 
         teasers_live.append("💸 **Oligopolio Contabile (Fatture in Cloud/Aruba):** Fee annuali innecessarie per funzioni amministrative base. L'infrastruttura autonoma rende la fatturazione illimitata.")
-        soluzioni_sbloccate.append("✅ Elimina le fee ricorrenti con **Invoice Ninja (Self-Hosted)** per una fatturazione B2B senza limitazioni.")
+        soluzioni_sbloccate.append(f"✅ Elimina le fee ricorrenti con <a href='https://invoiceninja.com' target='_blank' style='{link_style}'>Invoice Ninja (Self-Hosted)</a> per una fatturazione B2B senza limitazioni.")
         
     if workspace: 
         burn_rate += 70 
         teasers_live.append("💸 **Cloud Tax (Google Workspace/MS 365):** Tassa mensile perpetua per l'archiviazione dati. Il cloud aziendale privato garantisce sovranità ed elimina le rendite di Big Tech.")
-        soluzioni_sbloccate.append("✅ Sostituisci Google Drive/Docs con **Nextcloud** (Archiviazione, Documenti e Video-Call sul tuo server privato gratuito).")
+        soluzioni_sbloccate.append(f"✅ Sostituisci Google Drive/Docs con <a href='https://nextcloud.com' target='_blank' style='{link_style}'>Nextcloud</a> (Archiviazione, Documenti e Video-Call sul tuo server privato gratuito).")
 
     total_tco = burn_rate + hidden_costs
     
