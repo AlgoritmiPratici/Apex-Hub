@@ -365,7 +365,7 @@ def lead_capture_gateway(module_id, action_text="Download Risultati"):
     if st.session_state.global_clearance:
         # Patch UX per il Double Opt-In
         if st.session_state.just_unlocked:
-            st.success("✅ Accesso Autorizzato! L'identità è stata validata dal kernel centrale e il download diretto dei file crittografati è ora sbloccato qui sotto.", icon="✅")
+            st.success("✅ Accesso Autorizzato! Il download diretto del file è ora sbloccato qui sotto.", icon="✅")
             st.session_state.just_unlocked = False # Resettiamo il trigger dopo averlo mostrato
         return True # Sistema sbloccato
     
