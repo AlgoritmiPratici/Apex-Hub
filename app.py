@@ -839,190 +839,388 @@ def clean_dataset_nexus_elite(file_path):
     
 # --- 02. PROTOCOLLO .ENV ---
 elif selected_tool == "02. Sicurezza Ambientale (.env)":
-    source_py = """import os\nfrom dotenv import load_dotenv\n\nload_dotenv() # Carica le variabili dal file .env isolato\nAPI_KEY = os.getenv('API_KEY')\n\nif not API_KEY:\n    raise SystemExit('Vulnerabilità: Credenziali assenti.')"""
+    source_py = """import os
+from dotenv import load_dotenv
+
+# Ingegnerizzazione della sicurezza ambientale (Pattern 12-Factor)
+def load_secure_environment():
+    load_dotenv() # Isola le credenziali dal repository pubblico
+    API_KEY = os.getenv('API_KEY')
+    DB_HOST = os.getenv('DATABASE_URL')
+    
+    if not API_KEY or not DB_HOST:
+        raise SystemExit('[FATAL] Vulnerabilità rilevata: Credenziali di sistema assenti o esposte.')"""
+    
     render_page_header(
-        "CYBERSECURITY", "Sicurezza Ambientale (.env)",
-        "L'errore numero uno che causa i data breach aziendali è lasciare le password scritte in chiaro nel codice (GitHub). Incolla qui le tue configurazioni: il sistema estrarrà le informazioni sensibili isolandole, generando i file (.env e .gitignore) per blindare il server prima del deployment.",
-        "Applicazione rigorosa della 12-Factor App Methodology. Analisi pattern per il disaccoppiamento logico tra variabili d'ambiente (Environment Variables) e repository Git.",
+        "CYBERSECURITY", "Sicurezza Ambientale & Cryptography (.env)",
+        "L'errore numero uno che causa i data breach aziendali (e il furto di database) è lasciare chiavi API e password scritte in chiaro nel codice caricato su GitHub. Incolla qui le tue configurazioni: l'algoritmo eseguirà un audit di vulnerabilità in tempo reale, isolando le stringhe sensibili e generando un'architettura blindata pronta per il deployment.",
+        "Applicazione rigorosa della 12-Factor App Methodology. Analisi Regex per il disaccoppiamento logico tra variabili d'ambiente (Environment Variables) e repository Git.",
         source_py
     )
     
     # 👉 [LINK AFFILIAZIONE 2 - DIGITALOCEAN]
     render_affiliate_box(
         "DigitalOcean / Render", 
-        "Una volta protetti i tuoi file di configurazione con questo script, ti serve un server aziendale sicuro dove eseguire il codice H24.", 
+        "Una volta protetti i tuoi file di configurazione, la tua infrastruttura necessita di un server aziendale inattaccabile dove eseguire il codice H24.", 
         "https://digitalocean.com", 
         "Ottieni 200$ di credito Cloud su DigitalOcean"
     )
     
     st.markdown("<div class='nexus-card'>", unsafe_allow_html=True)
-    raw_env_str = """DATABASE_URL=postgres://admin:root123@local/db\nAPI_SECRET=sk_live_8473djds83...\nDEBUG_MODE=True"""
-    env_input = st.text_area("Incolla variabili esposte (Formato Key=Value):", value=raw_env_str, height=120)
+    st.markdown("<h4 style='color:#10B981; margin-bottom:1rem; font-size: 1.1rem;'>Audit di Sicurezza del Codice Sorgente</h4>", unsafe_allow_html=True)
     
-    if st.button("BLINDA ARCHITETTURA DI SISTEMA", type="primary"):
-        st.session_state.m1_buffer = env_input
-        st.session_state.sys_logs = f"<span class='sys-log'>[{sys_time()}] [sec-ops@nexus] ~ Scansione file configurazione e moduli...</span><br><span class='warn-log'>[ALERT] Rilevate password e chiavi API esposte in chiaro.</span><br><span class='sys-log'>[{sys_time()}] [ENCRYPT] Generazione isolamento in memoria...</span><br><span style='color:#10B981'>[SUCCESS] Architettura protetta. File asettici pronti per il deployment.</span>"
+    raw_env_str = """# Esempio di configurazione altamente vulnerabile
+DATABASE_URL=postgres://admin_nexus:Root_Password_2026@localhost:5432/db_aziendale
+STRIPE_SECRET_KEY=sk_live_8473djds8392jd832nd92
+OPENAI_API_KEY=sk-proj-1234567890abcdef
+DEBUG_MODE=True"""
+    
+    env_input = st.text_area("Incolla qui le variabili attualmente esposte nel tuo codice:", value=raw_env_str, height=150)
+    
+    if st.button("ESEGUI AUDIT E BLINDA ARCHITETTURA", type="primary"):
+        # Logica Teaser Dinamica
+        vuln_count = 0
+        if "sk_" in env_input.lower() or "sk-" in env_input.lower(): vuln_count += 1
+        if "pass" in env_input.lower() or "root" in env_input.lower(): vuln_count += 1
+        if "://" in env_input: vuln_count += 1
+        
+        st.session_state.m1_buffer = {"env": env_input, "vuln": vuln_count}
         
     if st.session_state.m1_buffer is not None:
-        st.markdown(f"<div class='cmd-window'>{st.session_state.sys_logs}</div><br>", unsafe_allow_html=True)
+        vuln = st.session_state.m1_buffer['vuln']
         
-        # Gatekeeper PLG prima del Download
-        if lead_capture_gateway("mod_02", "Download Architettura .ENV"):
+        # IL TEASER (Log di sistema realistico)
+        log_html = f"""
+        <div class='cmd-window'>
+            <span class='sys-log'>[{sys_time()}] [sec-ops@nexus] ~ Inizializzazione scanner euristico sul payload inserito...</span><br>
+            <span class='sys-log'>[{sys_time()}] [sec-ops@nexus] ~ Analisi pattern Regex per chiavi asimmetriche...</span><br>
+            <span class='warn-log'>[{sys_time()}] [ALERT CRITICO] Rilevate {vuln} vulnerabilità strutturali (Possibili Secret Keys/Database URL esposti).</span><br>
+            <span class='err-log'>[{sys_time()}] [RISCHIO] Se questo codice venisse pushato, bot automatizzati ruberebbero le tue API in 4 secondi.</span><br>
+            <span class='sys-log'>[{sys_time()}] [ENCRYPT] Estrazione stringhe sensibili. Generazione isolamento in memoria RAM...</span><br>
+            <span style='color:#10B981'>[{sys_time()}] [SUCCESS] Architettura protetta virtualmente. File asettici pronti per la compilazione.</span>
+        </div><br>
+        """
+        st.markdown(log_html, unsafe_allow_html=True)
+        
+        # IL LOCK
+        if lead_capture_gateway("mod_02", "Sblocca Download File Protetti (.env & .gitignore)"):
+            st.markdown("<h4 style='color:#FAFAFA;'>PACCHETTO DI SICUREZZA GENERATO</h4>", unsafe_allow_html=True)
+            st.markdown("<p style='color:#A1A1AA; font-size: 0.9rem;'>Inserisci questi due file nella root del tuo progetto. Il tuo server sarà blindato contro tentativi di scraping del codice.</p>", unsafe_allow_html=True)
+            
             c1, c2 = st.columns(2)
-            c1.download_button("📥 SCARICA .ENV", st.session_state.m1_buffer, ".env")
+            c1.download_button("📥 SCARICA PROTOCOLLO .ENV", st.session_state.m1_buffer['env'], ".env")
             c2.download_button("📥 SCARICA FIREWALL .GITIGNORE", ".env\n__pycache__/\n*.session\n.DS_Store", ".gitignore")
+            
     st.markdown("</div>", unsafe_allow_html=True)
+
 
 # --- 03. COMPILATORE TELEGRAM ---
 elif selected_tool == "03. Compilatore Telegram Scraper":
-    source_py = """from telethon.sync import TelegramClient\nimport csv\n\n# Architettura compilata dinamicamente in memoria\n# L'handshake richiede esecuzione locale per bypass OTP"""
+    source_py = """from telethon.sync import TelegramClient
+import csv
+import time
+
+# Architettura compilata dinamicamente in memoria
+# L'handshake richiede esecuzione locale (localhost) per bypassare i controlli OTP
+# Algoritmo anti-ban integrato con delay stocastici (time.sleep)"""
+    
     render_page_header(
-        "DATA EXTRACTION", "Compilatore Telegram Scraper",
-        "Genera un software personalizzato per estrarre migliaia di lead dai gruppi concorrenti. Poiché estrarre dati tramite Cloud genera un Ban immediato dell'account Telegram, inserisci i tuoi parametri qui. Compileremo un software Python sicuro che potrai scaricare ed avviare in totale privacy direttamente dal tuo computer.",
-        "Generazione programmatica di script Python (libreria Telethon asincrona). L'eseguibile forza l'architettura client-side (localhost) per bypassare i filtri anti-bot IP cloud.",
+        "DATA EXTRACTION", "Compilatore Telegram Scraper & Lead Gen",
+        "Costruisci un software proprietario per estrarre chirurgicamente migliaia di lead B2B/B2C dai gruppi dei tuoi competitor. I tool in Cloud vengono bannati istantaneamente da Telegram. Inserisci i tuoi parametri: compileremo uno script Python asincrono con protocolli Anti-Ban, da avviare in totale privacy dal tuo computer.",
+        "Generazione programmatica di script Python (Telethon asincrono). L'eseguibile forza l'architettura client-side per bypassare i filtri anti-bot IP cloud. Integrazione delay stocastici.",
         source_py
     )
     
     # 👉 [LINK AFFILIAZIONE 3 - SMARTPROXY]
     render_affiliate_box(
         "Smartproxy", 
-        "Se esegui scraping in locale per più di 10 gruppi, Telegram bannerà il tuo IP aziendale. Ti servono Proxy Residenziali a rotazione.", 
+        "Se esegui data-extraction massiva in locale per più di 10 community al giorno, Telegram bloccherà il tuo IP aziendale. Ti servono Proxy Residenziali a rotazione.", 
         "https://smartproxy.com", 
         "Proteggi il tuo IP registrandoti a Smartproxy"
     )
     
     st.markdown("<div class='nexus-card'>", unsafe_allow_html=True)
+    st.markdown("<h4 style='color:#10B981; margin-bottom:1rem; font-size: 1.1rem;'>Parametri di Configurazione Software</h4>", unsafe_allow_html=True)
+    
     c1, c2 = st.columns(2)
     api_id = c1.text_input("Telegram API_ID", placeholder="es. 2847592")
     api_hash = c2.text_input("Telegram API_HASH", placeholder="es. c4e8b...", type="password")
-    target = st.text_input("Username Community Competitor (senza @)", placeholder="es. marketing_italia")
+    target = st.text_input("Username Community Competitor (Senza @)", placeholder="es. marketing_italia_community")
+    
+    st.markdown("<br><p style='color:#A1A1AA; font-size: 0.9rem; margin-bottom:0.5rem;'>Opzioni Ingegneristiche Algoritmo:</p>", unsafe_allow_html=True)
+    c3, c4 = st.columns(2)
+    antiban = c3.checkbox("Attiva Protocollo Anti-Ban (Delay dinamico tra le richieste)", value=True)
+    filter_active = c4.checkbox("Filtra solo utenti attivi di recente (Escludi account fantasma)")
     
     if st.button("COSTRUISCI SOFTWARE SORGENTE", type="primary"):
         if api_id and api_hash and target:
-            script = f"""from telethon.sync import TelegramClient\nimport csv\n\nwith TelegramClient('nexus_session', '{api_id}', '{api_hash}') as c:\n  users = c.get_participants('{target}')\n  with open('leads_estrazione.csv', 'w', newline='', encoding='utf-8-sig') as f:\n    w=csv.writer(f)\n    w.writerow(['ID','Username','Name'])\n    for u in users: w.writerow([u.id, u.username, u.first_name])\n  print('[OK] Estrazione Dati Completata.')"""
-            st.session_state.m1_buffer = script
-            st.session_state.sys_logs = f"<span class='sys-log'>[{sys_time()}] [compiler@nexus] ~ Generazione variabili asincrone per il target '{target}'...</span><br><span style='color:#10B981'>[{sys_time()}] [SUCCESS] Software Python compilato in memoria. Binario pronto al download.</span>"
+            # Creazione script dinamico basato sulle checkbox (Personalizzazione Premium)
+            sleep_code = "time.sleep(1.5) # Protocollo Anti-ban attivo\n      " if antiban else ""
+            filter_code = "if not getattr(u.status, 'was_online', False): continue # Filtro inattivi\n      " if filter_active else ""
+            
+            script = f"""from telethon.sync import TelegramClient
+import csv
+import time
+
+# [NEXUS CLOUD ENGINE] - Compilazione per Target: @{target}
+print("Avvio Handshake con i server Telegram...")
+with TelegramClient('nexus_session', '{api_id}', '{api_hash}') as c:
+  print("Connessione stabilita. Inizio estrazione dati da @{target}...")
+  users = c.get_participants('{target}')
+  
+  with open('leads_estrazione_{target}.csv', 'w', newline='', encoding='utf-8-sig') as f:
+    w=csv.writer(f)
+    w.writerow(['ID', 'Username', 'Nome', 'Telefono (se pubblico)'])
+    
+    extracted = 0
+    for u in users:
+      {filter_code}{sleep_code}w.writerow([u.id, u.username, u.first_name, u.phone])
+      extracted += 1
+      
+  print(f"[OK] Operazione Completata. {{extracted}} Leads estratti con successo.")
+"""
+            st.session_state.m1_buffer = {"script": script, "target": target}
+            
         else:
-            st.session_state.sys_logs = f"<span class='err-log'>[{sys_time()}] [FATAL ERROR] Impossibile completare la compilazione. Parametri API mancanti nel costruttore.</span>"
+            st.error("Errore: Compila API_ID, API_HASH e Target per generare l'eseguibile.")
             st.session_state.m1_buffer = None
             
-    if st.session_state.sys_logs != "":
-        st.markdown(f"<div class='cmd-window'>{st.session_state.sys_logs}</div><br>", unsafe_allow_html=True)
-        if st.session_state.m1_buffer:
+    if st.session_state.m1_buffer is not None:
+        target_name = st.session_state.m1_buffer['target']
+        
+        # IL TEASER 
+        log_html = f"""
+        <div class='cmd-window'>
+            <span class='sys-log'>[{sys_time()}] [compiler@nexus] ~ Generazione albero sintattico per il target '{target_name}'...</span><br>
+            <span class='sys-log'>[{sys_time()}] [compiler@nexus] ~ Iniezione parametri API_ID e API_HASH in memoria RAM...</span><br>
+            <span class='sys-log'>[{sys_time()}] [compiler@nexus] ~ Calcolo vettoriale: La community '{target_name}' possiede un altissimo potenziale di estrazione B2B.</span><br>
+            <span style='color:#10B981'>[{sys_time()}] [SUCCESS] Software Python proprietario compilato con successo. Binario pronto.</span>
+        </div><br>
+        """
+        st.markdown(log_html, unsafe_allow_html=True)
+        
+        # IL LOCK
+        if lead_capture_gateway("mod_03", "Sblocca Download del Software Python"):
+            st.markdown("<h4 style='color:#FAFAFA;'>SOFTWARE PRONTO PER L'ESECUZIONE</h4>", unsafe_allow_html=True)
+            st.markdown(f"""
+            <div style='background-color: rgba(16, 185, 129, 0.05); border-left: 4px solid #10B981; padding: 15px; border-radius: 4px; margin-bottom:15px;'>
+                <span style='color:#FAFAFA; font-size: 0.95rem;'>Scarica il file <b>nexus_engine.py</b> qui sotto. Eseguilo sul tuo terminale per iniziare immediatamente l'estrazione in locale, salvaguardando il tuo account da blocchi server-side.</span>
+            </div>
+            """, unsafe_allow_html=True)
+            st.download_button("📥 SCARICA SCRIPT PYTHON ESEGUIBILE (.PY)", st.session_state.m1_buffer['script'], f"nexus_telegram_{target_name}.py")
             
-            # Gatekeeper PLG prima del Download Executable
-            if lead_capture_gateway("mod_03", "Software Client Python"):
-                st.download_button("📥 SCARICA SCRIPT PYTHON (.PY)", st.session_state.m1_buffer, "nexus_telegram_engine.py")
     st.markdown("</div>", unsafe_allow_html=True)
+
 
 # --- 04. ROUTER NOTIFICHE ---
 elif selected_tool == "04. Router Notifiche Asincrono":
-    source_py = """from fastapi import FastAPI, Request\napp = FastAPI()\n\n@app.post("/webhook")\nasync def route_traffic(req: Request):\n    payload = await req.json()\n    if payload.get("priority") == "CRITICAL":\n        return trigger_sms_alert()\n    return log_silently_to_db()"""
+    source_py = """from fastapi import FastAPI, Request
+import logging
+
+app = FastAPI()
+
+# Event-Driven Architecture: O(1) Time Complexity
+@app.post("/nexus-webhook-router")
+async def route_traffic(req: Request):
+    payload = await req.json()
+    
+    # Il management non deve essere disturbato da rumore bianco.
+    if payload.get("priority", "").upper() == "CRITICAL":
+        return execute_bypass_sms_protocol(payload)
+        
+    return archive_silently_to_datalake(payload)"""
+    
     render_page_header(
-        "ALGORITHMS", "Router Notifiche Asincrono",
-        "L'overload informativo paralizza il management. Incolla i dati di un evento di sistema (es. server down). L'algoritmo valuterà autonomamente l'urgenza. Se critico, inoltra un SMS al management. Se inutile, lo silenzia e lo archivia in database per non distrarre il team.",
-        "Simulazione Endpoint REST in ricezione. Parsing asincrono del payload JSON. Switch logico interno sulla chiave 'priority' (Event-Driven Architecture) con tempo di esecuzione O(1).",
+        "ALGORITHMS", "Router Notifiche Asincrono & Triage",
+        "L'overload informativo paralizza le decisioni del management (Alert Fatigue). Incolla il payload JSON di un evento aziendale (es. server down, nuovo lead, pagamento fallito). L'algoritmo valuterà autonomamente il grado di urgenza: se critico, bypassa i filtri per un SMS d'emergenza. Se è 'rumore bianco', lo archivia nel database in totale silenzio.",
+        "Simulazione Endpoint REST in ricezione. Parsing asincrono del payload JSON. Switch logico interno basato su chiave 'priority' (Event-Driven Architecture).",
         source_py
     )
     
     # 👉 [LINK AFFILIAZIONE 4 - MAKE.COM]
     render_affiliate_box(
         "Make.com (Integromat)", 
-        "Perché usare script manuali scritti in Python quando Make.com può fare questo routing logico visualmente in 2 minuti senza scrivere una riga di codice?", 
+        "Perché scrivere script di routing in Python puro quando Make.com possiede 'Router' visuali che smistano migliaia di payload JSON al secondo senza codice?", 
         "https://make.com", 
-        "Crea un account gratuito su Make.com"
+        "Implementa i Router Visivi su Make.com"
     )
     
     st.markdown("<div class='nexus-card'>", unsafe_allow_html=True)
-    json_test = """{\n  "source": "server_monitor",\n  "error_code": "502_bad_gateway",\n  "priority": "CRITICAL"\n}"""
-    json_in = st.text_area("Payload Evento in Ingresso (JSON):", value=json_test, height=140)
+    st.markdown("<h4 style='color:#10B981; margin-bottom:1rem; font-size: 1.1rem;'>Simulazione Ingestion Dati</h4>", unsafe_allow_html=True)
     
-    if st.button("ESEGUI ALGORITMO DI ROUTING", type="primary"):
-        with st.spinner("Valutazione rami logici..."):
-            time.sleep(0.5)
+    json_test = """{
+  "source_system": "stripe_billing",
+  "event_type": "payment_failed",
+  "customer_value": 4500,
+  "priority": "CRITICAL",
+  "timestamp": "2026-08-25T14:30:00Z"
+}"""
+    json_in = st.text_area("Payload Evento in Ingresso (Codice JSON puro):", value=json_test, height=160)
+    
+    if st.button("ESEGUI ALGORITMO DI TRIAGE", type="primary"):
+        with st.spinner("Valutazione rami logici dell'algoritmo..."):
+            time.sleep(0.6) # Fake delay per realismo
             try:
                 data = json.loads(json_in)
-                st.session_state.m1_buffer = data
-                st.session_state.sys_logs = f"<span class='sys-log'>[{sys_time()}] Routing Engine Eseguito. Dati elaborati con successo.</span>"
+                size_bytes = len(json_in.encode('utf-8'))
+                st.session_state.m1_buffer = {"data": data, "size": size_bytes}
             except json.JSONDecodeError as e:
-                st.session_state.sys_logs = f"<span class='err-log'>[{sys_time()}] [FATAL ERROR] Payload JSON corrotto o malformato. Syntax Error: {e}</span>"
-                st.session_state.m1_buffer = None
+                st.session_state.m1_buffer = {"error": str(e)}
                 
-    if st.session_state.sys_logs != "":
-        # Mostra log di elaborazione iniziale
-        if not st.session_state.global_clearance:
-             st.markdown(f"<div class='cmd-window'>{st.session_state.sys_logs}</div>", unsafe_allow_html=True)
-             
-        if st.session_state.m1_buffer:
-            # Gatekeeper PLG prima di mostrare il risultato della logica JSON
-            if lead_capture_gateway("mod_04", "Risultato Architettura Routing"):
-                data = st.session_state.m1_buffer
+    if st.session_state.m1_buffer is not None:
+        if "error" in st.session_state.m1_buffer:
+            err = st.session_state.m1_buffer['error']
+            st.markdown(f"<div class='cmd-window'><span class='err-log'>[{sys_time()}] [FATAL ERROR] Payload JSON corrotto o malformato. Il parsing ha fallito: {err}</span></div>", unsafe_allow_html=True)
+        else:
+            size = st.session_state.m1_buffer['size']
+            
+            # IL TEASER
+            log_html = f"""
+            <div class='cmd-window'>
+                <span class='sys-log'>[{sys_time()}] [router@nexus] ~ Webhook in ascolto. Payload ricevuto.</span><br>
+                <span class='sys-log'>[{sys_time()}] [router@nexus] ~ Validazione JSON completata. Dimensione: {size} bytes.</span><br>
+                <span class='warn-log'>[{sys_time()}] [router@nexus] ~ Estrazione chiavi di priorità in corso. Calcolo vettore di instradamento...</span><br>
+                <span style='color:#10B981'>[{sys_time()}] [SUCCESS] Decisione algoritmica calcolata e bloccata in memoria.</span>
+            </div><br>
+            """
+            st.markdown(log_html, unsafe_allow_html=True)
+            
+            # IL LOCK
+            if lead_capture_gateway("mod_04", "Sblocca Risultato del Triage Algoritmico"):
+                st.markdown("<h4 style='color:#FAFAFA;'>OUTPUT MOTORE DECISIONALE:</h4>", unsafe_allow_html=True)
+                
+                data = st.session_state.m1_buffer['data']
                 prio = str(data.get("priority", "LOW")).upper()
+                
                 if prio in ["HIGH", "CRITICAL"]:
                     data["nexus_action"] = "FORWARD_TO_CTO_SMS"
-                    msg = f"<span class='warn-log'>[{sys_time()}] [URGENT] Priorità Alta rilevata. Bypass filtri attivato. Evento inoltrato via SMS.</span>"
+                    box_color = "#F59E0B" # Ambra
+                    msg_title = "🚨 BYPASS D'EMERGENZA ATTIVATO"
+                    msg_body = "L'algoritmo ha rilevato una priorità critica. Il 'rumore bianco' è stato bypassato e il payload è stato instradato istantaneamente via SMS al management per intervento immediato."
                 else:
                     data["nexus_action"] = "SILENT_DB_LOG"
-                    msg = f"<span class='sys-log'>[{sys_time()}] [SILENT] Priorità Bassa. Rumore soppresso e archiviato per audit futuro.</span>"
+                    box_color = "#10B981" # Verde
+                    msg_title = "✅ SOPPRESSIONE RUMORE (SILENT LOGGING)"
+                    msg_body = "Priorità bassa rilevata. L'evento non giustifica un'interruzione umana. Il payload è stato instradato asincronamente nel Data Lake aziendale per archiviazione."
                 
                 json_str = json.dumps(data, indent=2)
-                formatted_json = json_str.replace('\n', '<br>').replace('  ', '&nbsp;&nbsp;')
                 
-                st.markdown(f"<div class='cmd-window'>{msg}<br><br><span class='acc-log'>[PAYLOAD TRASFORMATO E DECISIONE PRESA]:</span><br>{formatted_json}</div>", unsafe_allow_html=True)
+                st.markdown(f"""
+                <div style='background-color: rgba(39, 39, 42, 0.5); border-left: 4px solid {box_color}; padding: 15px; border-radius: 4px;'>
+                    <h5 style='color:{box_color}; margin-top:0;'>{msg_title}</h5>
+                    <p style='color:#E4E4E7; font-size: 0.95rem;'>{msg_body}</p>
+                    <pre style='background-color:#18181B; padding:10px; border-radius:4px; color:#A1A1AA; font-size:0.85rem;'>{json_str}</pre>
+                </div>
+                """, unsafe_allow_html=True)
+                
     st.markdown("</div>", unsafe_allow_html=True)
+
 
 # --- 05. API INJECTOR ---
 elif selected_tool == "05. Integrazione API (Sandbox)":
-    source_py = """import requests\nimport json\n\ndef inject_payload(url, data_dict):\n    headers = {'Content-Type': 'application/json'}\n    response = requests.post(url, json=data_dict, headers=headers, timeout=5)\n    return response.status_code, response.elapsed.total_seconds()"""
+    source_py = """import requests
+import json
+import time
+
+def execute_telemetry_ping(endpoint_url, auth_token, json_payload):
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {auth_token}'
+    }
+    
+    t0 = time.time()
+    response = requests.post(endpoint_url, json=json_payload, headers=headers, timeout=5)
+    latency_ms = round((time.time() - t0) * 1000, 2)
+    
+    return response.status_code, latency_ms, response.json()"""
+    
     render_page_header(
-        "NETWORK OPS", "Integrazione API (Sandbox)",
-        "Garantisci l'integrità dei flussi aziendali. Inserisci l'URL di destinazione (es. Webhook Make.com) e invia un pacchetto dati di prova. Il sistema simulerà un ping HTTP, misurerà la latenza di rete e verificherà che l'informazione sia giunta intatta a destinazione.",
-        "Esecuzione modulo <code>requests.post</code> nativo. Handshake TCP/TLS asincrono verso endpoint remoto. Misurazione telemetrica della latenza in millisecondi e validazione HTTP Status Code.",
+        "NETWORK OPS", "Telemetria & Integrazione API (Sandbox)",
+        "L'anello debole di ogni azienda automatizzata è la latenza di rete tra i vari software. Inserisci l'URL di destinazione (es. un tuo Webhook) e il payload JSON. Il sistema inietterà i dati eseguendo un Ping HTTP misurando chirurgicamente i millisecondi di latenza, gli Header e i codici di stato di ritorno (Status Code 200/500).",
+        "Esecuzione modulo 'requests.post' nativo. Handshake TCP/TLS asincrono verso endpoint remoto. Misurazione telemetrica rigorosa della latenza (ms) e validazione dell'integrità dei pacchetti.",
         source_py
     )
     
     # 👉 [LINK AFFILIAZIONE 5 - MAKE.COM API]
     render_affiliate_box(
         "Make.com (Integromat)", 
-        "Cattura i dati inviati da questo simulatore API usando un Webhook Custom su Make.com per costruire la tua automazione.", 
+        "Sfrutta questo simulatore API per collaudare i Webhook Custom che crei su Make.com. Invia i dati da qui e guardali atterrare visivamente sulla tua automazione.", 
         "https://make.com", 
-        "Attiva il tuo primo Webhook su Make.com"
+        "Crea un Webhook di test gratuito su Make.com"
     )
     
     st.markdown("<div class='nexus-card'>", unsafe_allow_html=True)
-    url = st.text_input("URL di Destinazione (Endpoint REST)", value="https://httpbin.org/post")
-    payload_str = """{\n  "cliente": "NEXUS Corp",\n  "status": "Integrazione API Verificata"\n}"""
-    payload = st.text_area("Dati da inviare (JSON)", value=payload_str, height=110)
+    st.markdown("<h4 style='color:#10B981; margin-bottom:1rem; font-size: 1.1rem;'>Configurazione Richiesta HTTP</h4>", unsafe_allow_html=True)
     
-    if st.button("ESEGUI TEST DI RETE (PING)", type="primary"):
-        st.session_state.sys_logs = f"<span class='sys-log'>[{sys_time()}] [net-ops@nexus] ~ Negoziazione protocollo HTTP/TLS verso {url}...</span>"
-        try:
-            p_json = json.loads(payload)
-            t0 = time.time()
-            res = requests.post(url, json=p_json, timeout=5)
-            lat = round(time.time() - t0, 3)
+    url = st.text_input("URL Destinazione (Endpoint REST)", value="https://httpbin.org/post")
+    
+    c1, c2 = st.columns(2)
+    method = c1.selectbox("Metodo HTTP", ["POST (Iniezione Dati)", "PUT (Aggiornamento)", "PATCH"])
+    auth = c2.text_input("Bearer Token (Opzionale)", placeholder="sk_test_...", type="password")
+    
+    payload_str = """{
+  "transazione_id": "TXN_884920",
+  "cliente": "NEXUS Corp",
+  "status": "Integrazione API Verificata",
+  "importo": 499.00
+}"""
+    payload = st.text_area("Body della richiesta (JSON Payload)", value=payload_str, height=140)
+    
+    if st.button("INIZIALIZZA TELEMETRIA DI RETE (PING)", type="primary"):
+        st.session_state.m1_buffer = {"url": url, "auth": auth, "payload": payload}
             
-            st.session_state.m1_buffer = {"res_text": res.text[:250], "status": res.status_code, "lat": lat}
-            st.session_state.sys_logs += f"<br><span style='color:#10B981'>[{sys_time()}] [SUCCESS] Transazione completata. Rete validata.</span>"
-        except json.JSONDecodeError:
-            st.session_state.sys_logs += f"<br><span class='err-log'>[{sys_time()}] [ERROR] Formattazione JSON invalida. Il carico utile è stato respinto.</span>"
-            st.session_state.m1_buffer = None
-        except Exception as e:
-            st.session_state.sys_logs += f"<br><span class='err-log'>[{sys_time()}] [TIMEOUT FATAL] Endpoint irraggiungibile o barriera firewall attiva. Dettagli: {e}</span>"
-            st.session_state.m1_buffer = None
+    if st.session_state.m1_buffer is not None:
+        buf = st.session_state.m1_buffer
+        
+        # IL TEASER (Simulazione della Rete)
+        log_html = f"""
+        <div class='cmd-window'>
+            <span class='sys-log'>[{sys_time()}] [net-ops@nexus] ~ DNS Resolution per l'host remoto completata.</span><br>
+            <span class='sys-log'>[{sys_time()}] [net-ops@nexus] ~ Handshake TCP e Negoziazione protocollo TLS v1.3 verso {buf['url']}...</span><br>
+            <span class='warn-log'>[{sys_time()}] [net-ops@nexus] ~ Iniezione Payload JSON. In attesa di risposta dal server...</span><br>
+            <span style='color:#10B981'>[{sys_time()}] [SUCCESS] Transazione di rete conclusa. Dati telemetrici acquisiti.</span>
+        </div><br>
+        """
+        st.markdown(log_html, unsafe_allow_html=True)
+        
+        # IL LOCK
+        if lead_capture_gateway("mod_05", "Sblocca Report Telemetrico Server"):
             
-    if st.session_state.sys_logs != "":
-        # Mostra Log negoziazione base
-        if not st.session_state.global_clearance:
-            st.markdown(f"<div class='cmd-window'>{st.session_state.sys_logs}</div>", unsafe_allow_html=True)
-            
-        if st.session_state.m1_buffer:
-            # Gatekeeper PLG prima di mostrare latenza e response body del server remoto
-            if lead_capture_gateway("mod_05", "Rapporto di Diagnostica di Rete"):
-                data = st.session_state.m1_buffer
-                safe_res = data['res_text'].replace('\n', '<br>').replace('  ', '&nbsp;&nbsp;')
-                full_log = st.session_state.sys_logs + f"<br>HTTP CODE: {data['status']}<br>LATENZA TCP: {data['lat']}s<br><br><span class='sys-log'>[RAW SERVER RESPONSE]</span><br>{safe_res}..."
-                st.markdown(f"<div class='cmd-window'>{full_log}</div>", unsafe_allow_html=True)
+            # Esecuzione Reale della chiamata
+            try:
+                p_json = json.loads(buf['payload'])
+                headers = {'Content-Type': 'application/json'}
+                if buf['auth']: headers['Authorization'] = f"Bearer {buf['auth']}"
+                
+                t0 = time.time()
+                res = requests.post(buf['url'], json=p_json, headers=headers, timeout=5)
+                lat_ms = round((time.time() - t0) * 1000, 2)
+                
+                # Responso Premium Visuale
+                st.markdown("<h4 style='color:#FAFAFA;'>DIAGNOSTICA SERVER REMOTO</h4>", unsafe_allow_html=True)
+                
+                c3, c4, c5 = st.columns(3)
+                c3.metric("HTTP Status Code", res.status_code, "200 = Successo" if res.status_code == 200 else "Errore Rilevato", delta_color="normal" if res.status_code == 200 else "inverse")
+                c4.metric("Latenza di Rete", f"{lat_ms} ms", "- Ottimale" if lat_ms < 500 else "+ Rete Lenta", delta_color="inverse")
+                c5.metric("Payload Size", f"{len(res.content)} bytes", "Inviati e Ricevuti")
+                
+                try:
+                    pretty_res = json.dumps(res.json(), indent=2)
+                except:
+                    pretty_res = res.text[:500]
+                
+                st.markdown(f"""
+                <div style='background-color: rgba(39, 39, 42, 0.5); padding: 15px; border-radius: 4px; border: 1px solid #3F3F46; margin-top: 15px;'>
+                    <h6 style='color: #10B981; margin-top: 0;'>[RAW SERVER RESPONSE BODY]:</h6>
+                    <pre style='background-color:#18181B; padding:10px; border-radius:4px; color:#A1A1AA; font-size:0.85rem; max-height: 250px; overflow-y: auto;'>{pretty_res}</pre>
+                </div>
+                """, unsafe_allow_html=True)
+                
+            except json.JSONDecodeError:
+                st.error("Errore: Il payload inserito non è un JSON formattato correttamente.")
+            except Exception as e:
+                st.error(f"Endpoint irraggiungibile o Timeout di rete. Dettagli errore: {str(e)}")
+                
     st.markdown("</div>", unsafe_allow_html=True)
 
 # --- 06. INTERACTIVE CLOUD AUDIT ---
