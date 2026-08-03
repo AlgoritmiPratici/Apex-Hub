@@ -52,9 +52,9 @@ st.markdown("""
     <style>
     /* ========================================================= */
     /* FIXED LEFT NAVIGATION (DESKTOP) & MOBILE ACCESSIBILITY    */
-    /* Nascondiamo il bottone di chiusura solo su desktop.       */
-    /* Su mobile il menu hamburger torna visibile per navigare.  */
     /* ========================================================= */
+    
+    /* DESKTOP: Nascondiamo il bottone di chiusura solo su schermi grandi */
     @media (min-width: 992px) {
         [data-testid="stSidebarCollapseButton"], [data-testid="collapsedControl"] { display: none !important; }
     }
@@ -62,7 +62,7 @@ st.markdown("""
     /* Rimuove l'inutile decorazione superiore di Streamlit */
     [data-testid="stDecoration"] { display: none !important; }
     
-    /* Rende l'header trasparente e nasconde bottoni spazzatura a destra */
+    /* Rende l'header trasparente e nasconde bottoni spazzatura a destra (Base) */
     header { background-color: transparent !important; box-shadow: none !important; }
     [data-testid="stHeaderActionElements"] { display: none !important; }
     
@@ -80,7 +80,7 @@ st.markdown("""
     html, body, [data-testid="stAppViewContainer"] { background-color: #030303 !important; color: #E4E4E7 !important; }
     [data-testid="stSidebar"] { background-color: #0A0A0A !important; border-right: 1px solid #18181B !important; }
     
-    /* Titoli High-End Corporate */
+    /* Titoli High-End Corporate (Stile Desktop) */
     h1 { 
         background: linear-gradient(135deg, #FFFFFF 0%, #A1A1AA 100%);
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
@@ -170,6 +170,49 @@ st.markdown("""
     /* Customizzazione estetica dei Checkbox per la Matrice Costi */
     div[data-testid="stCheckbox"] label { cursor: pointer; }
     div[data-testid="stCheckbox"] label p { color: #F4F4F5 !important; font-weight: 500; }
+    
+    /* ========================================================= */
+    /* PATCH MOBILE: FIX SCOMPARSA MENU & TIPOGRAFIA TITOLI      */
+    /* Vengono processati alla fine per sovrascrivere i default  */
+    /* ========================================================= */
+    @media (max-width: 991px) {
+        
+        /* 1. Fix Menu: Rendiamo l'header solido per staccare il tasto hamburger dallo sfondo scuro */
+        header { 
+            background-color: rgba(10, 10, 10, 0.98) !important; 
+            border-bottom: 1px solid #18181B !important; 
+            backdrop-filter: blur(10px) !important;
+        }
+        
+        /* Forza la visibilità del bottone hamburger di Streamlit contro eventuali blocchi di sistema */
+        [data-testid="collapsedControl"], 
+        [data-testid="stSidebarCollapsedControl"] { 
+            display: flex !important; 
+            visibility: visible !important;
+            opacity: 1 !important;
+            z-index: 999999 !important;
+        }
+        
+        /* 2. Fix Titoli Moduli: Dimensioni più grandi, ariose e leggibili */
+        h1 {
+            font-size: 2.0rem !important; /* Grande e impattante senza rompere la UI */
+            letter-spacing: 0.01em !important; /* Spaziatura positiva: annulla il -0.04em Desktop che causava l'accavallamento */
+            line-height: 1.35 !important;
+            margin-top: 1.5rem !important;
+            margin-bottom: 1.2rem !important;
+        }
+        
+        /* Anche i sottotitoli H2 e H3 ricevono una correzione al kerning */
+        h2, h3 {
+            letter-spacing: 0.01em !important;
+            line-height: 1.4 !important;
+        }
+        
+        /* 3. Aggiustamento margini e card su smartphone per un fit perfetto */
+        .nexus-card {
+            padding: 1.5rem 1rem !important;
+        }
+    }
     </style>
     """, unsafe_allow_html=True)
 
