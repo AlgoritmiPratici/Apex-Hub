@@ -467,144 +467,298 @@ if st.session_state.active_tool != selected_tool:
 if selected_tool == "01. Normalizzazione Dati (CSV)":
     source_py = """import pandas as pd
 import numpy as np
+import re
 
-def clean_dataset(file_path):
-    # Gestione Avanzata Encoding
+def clean_dataset_enterprise(file_path):
+    # 1. Gestione Avanzata Encoding & Parsing Delimitatori
     try:
         df = pd.read_csv(file_path, sep=None, engine='python', encoding='utf-8')
-    except UnicodeDecodeError:
+    except Exception:
         df = pd.read_csv(file_path, sep=None, engine='python', encoding='latin1')
 
-    # 1. Normalizzazione Intestazioni (RegEx)
-    df.columns = df.columns.astype(str).str.strip().str.lower()
-    df.columns = df.columns.str.replace(r'[^a-z0-9_]', '_', regex=True).str.replace(r'_+', '_', regex=True).str.strip('_')
+    df_clean = df.copy()
 
-    # 2. Pulizia Profonda (Spazi multipli e NaN)
-    df = df.replace(r'^\\s*$', np.nan, regex=True)
-    for col in df.columns:
-        if df[col].dtype == 'object':
-            # Comprime spazi multipli e rimuove spazi ai bordi
-            df[col] = df[col].astype(str).replace(r'\\s+', ' ', regex=True).str.strip()
-            df[col] = df[col].replace(['nan', 'None', 'null', ''], np.nan)
+    # 2. Normalizzazione Intestazioni (Snake_Case Enterprise & No Accenti)
+    headers = []
+    for col in df_clean.columns:
+        c = str(col).strip().lower()
+        c = re.sub(r'[àáâä]', 'a', c)
+        c = re.sub(r'[èéêë]', 'e', c)
+        c = re.sub(r'[ìíîï]', 'i', c)
+        c = re.sub(r'[òóôö]', 'o', c)
+        c = re.sub(r'[ùúûü]', 'u', c)
+        c = re.sub(r'[^a-z0-9_]', '_', c)
+        c = re.sub(r'_+', '_', c).strip('_')
+        headers.append(c if c else 'colonna')
+    df_clean.columns = headers
 
-    # 3. Formattazione Nomi Propri
-    nome_cols = [c for c in df.columns if any(k in c for k in ['nome', 'cognome', 'name'])]
+    # 3. Rimozione esclusiva delle righe 100% vuote
+    df_clean = df_clean.dropna(how='all')
+
+    # 4. Pulizia Stringhe & Compressione Spazi Multipli
+    for col in df_clean.columns:
+        if df_clean[col].dtype == 'object':
+            df_clean[col] = df_clean[col].astype(str).str.strip()
+            df_clean[col] = df_clean[col].replace(r'\\s+', ' ', regex=True)
+            df_clean[col] = df_clean[col].replace(['nan', 'None', 'null', 'NaN', 'N/A', 'n/a', ''], np.nan)
+
+    # 5. Smart Title Case su Nomi e Cognomi
+    nome_cols = [c for c in df_clean.columns if any(k in c for k in ['nome', 'cognome', 'name', 'cliente', 'referente'])]
     for col in nome_cols:
-        df[col] = df[col].str.title()
+        if col in df_clean.columns and df_clean[col].dtype == 'object':
+            df_clean[col] = df_clean[col].apply(lambda x: str(x).title() if pd.notna(x) and x != 'nan' else x)
 
-    # 4. Sanificazione Numeri di Telefono
-    tel_cols = [c for c in df.columns if any(k in c for k in ['tel', 'phone', 'cell'])]
-    for col in tel_cols:
-        df[col] = df[col].astype(str).str.replace(r'[^\\d+]', '', regex=True).replace('', np.nan)
-
-    # 5. Validazione Email Assoluta (Pattern Regex)
-    email_cols = [c for c in df.columns if 'mail' in c]
+    # 6. Engine Riparazione Auto-Mail (Typo Correction & Domain Repair)
+    email_typos = {
+        r'@gmaill?\\.com$': '@gmail.com',
+        r'@gamil\\.com$': '@gmail.com',
+        r'@gmal\\.com$': '@gmail.com',
+        r'@outlok\\.com$': '@outlook.com',
+        r'@hotmaill?\\.com$': '@hotmail.com',
+        r'@yaho\\.com$': '@yahoo.com',
+        r'@virgilo\\.it$': '@virgilio.it',
+        r'@tiscali\\.com$': '@tiscali.it'
+    }
+    email_cols = [c for c in df_clean.columns if 'mail' in c]
+    repaired_emails = 0
     if email_cols:
-        col_mail = email_cols[0]
-        df[col_mail] = df[col_mail].str.lower()
-        regex_mail = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+$'
-        valid_mail_mask = df[col_mail].str.match(regex_mail, na=False)
-        df = df[valid_mail_mask]
+        col_m = email_cols[0]
+        if df_clean[col_m].dtype == 'object':
+            df_clean[col_m] = df_clean[col_m].astype(str).str.lower().str.strip()
+            for pattern, target in email_typos.items():
+                mask = df_clean[col_m].str.contains(pattern, regex=True, na=False)
+                repaired_emails += mask.sum()
+                df_clean[col_m] = df_clean[col_m].str.replace(pattern, target, regex=True)
+            df_clean[col_m] = df_clean[col_m].replace(['nan', 'none', 'null', ''], np.nan)
 
-    # 6. Rimozione Duplicati
-    df = df.drop_duplicates()
+    # 7. Sanificazione Numeri di Telefono (Cifre e Prefisso +)
+    tel_cols = [c for c in df_clean.columns if any(k in c for k in ['tel', 'phone', 'cell', 'mobile', 'telefono'])]
+    for col in tel_cols:
+        if col in df_clean.columns and df_clean[col].dtype == 'object':
+            df_clean[col] = df_clean[col].apply(lambda x: re.sub(r'[^\\d+]', '', str(x)) if pd.notna(x) and x != 'nan' else np.nan)
 
-    return df"""
-    
+    # 8. Normalizzazione Valute & Numeri (Parsing Ibrido EU/US)
+    num_cols = [c for c in df_clean.columns if any(k in c for k in ['fatturato', 'importo', 'prezzo', 'revenue', 'amount', 'totale', 'valore'])]
+    for col in num_cols:
+        if col in df_clean.columns and df_clean[col].dtype == 'object':
+            def clean_num(val):
+                if pd.isna(val) or val == 'nan': return np.nan
+                v = str(val).replace('€', '').replace('$', '').replace('£', '').strip()
+                v = re.sub(r'\\s+', '', v)
+                if '.' in v and ',' in v:
+                    if v.find('.') < v.find(','):
+                        v = v.replace('.', '').replace(',', '.')
+                    else:
+                        v = v.replace(',', '')
+                elif ',' in v:
+                    v = v.replace(',', '.')
+                try:
+                    return float(v)
+                except:
+                    return val
+            df_clean[col] = df_clean[col].apply(clean_num)
+
+    # 9. Normalizzazione Date (Standard ISO YYYY-MM-DD)
+    date_cols = [c for c in df_clean.columns if any(k in c for k in ['data', 'date', 'iscrizione', 'created', 'time'])]
+    for col in date_cols:
+        if col in df_clean.columns:
+            try:
+                parsed_dates = pd.to_datetime(df_clean[col], dayfirst=True, errors='coerce')
+                df_clean[col] = parsed_dates.dt.strftime('%Y-%m-%d').fillna(df_clean[col])
+            except:
+                pass
+
+    # 10. Deduplicazione Intelligente (Eliminazione Duplicati Identici)
+    r_before_dedup = len(df_clean)
+    df_clean = df_clean.drop_duplicates()
+    dups_removed = r_before_dedup - len(df_clean)
+
+    return df_clean"""
+
     render_page_header(
-        "DATA PROCESSING", "Normalizzazione Dati (CSV)",
-        "I database disorganizzati uccidono le conversioni e intasano i CRM. Carica un Data Dump esportato dai tuoi vecchi gestionali. Il sistema rimuove all'istante i record duplicati, standardizza le intestazioni, formatta i nomi propri, corregge i telefoni ed elimina le email malformate tramite RegEx. Ottieni un database puro, risparmiando ore di lavoro su Excel.",
-        "Libreria base: <code>pandas</code>, <code>numpy</code>. Operazioni: Deep Regex Cleaning, Space Compression, Phone Extraction, Regex Email Validation, Type casting. Memoria: Totalmente volatile (elaborazione RAM-only).",
+        "DATA PROCESSING", "Enterprise CSV Normalizer & Sanitizer v2.0",
+        "Motore di data-enrichment professionale. Trasforma archivi disorganizzati in database CRM-ready. Il sistema sanifica gli errori di battitura dei domini email, formatta i telefoni, riconosce e converte le valute e standardizza le date in formato ISO senza alcuna perdita accidentale di dati.",
+        "Tecnologia Core: <code>pandas</code>, <code>numpy</code>, <code>regex</code>. Operazioni: Zero-Loss Data Retention, Auto Domain Repair, Hybrid Currency Parsing, ISO Date Standardization, Vectorized Title-Casing.",
         source_py
     )
-    
+
     # 👉 [LINK AFFILIAZIONE 1 - AIRTABLE]
     render_affiliate_box(
         "Airtable", 
-        "Pulire i CSV è solo il primo passo. Per gestire i lead e creare pipeline automatizzate senza usare codice, devi importare questi dati puliti su Airtable.", 
+        "Pulire i dati è il primo step. Per strutturare i lead in tabelle dinamiche e automatizzare i flussi CRM, importa il CSV normalizzato direttamente su Airtable.", 
         "https://airtable.com", 
-        "Apri un account gratuito su Airtable"
+        "Crea un account gratuito su Airtable"
     )
-    
+
     st.markdown("<div class='nexus-card'>", unsafe_allow_html=True)
     uploaded_file = st.file_uploader("Trascina il tuo Data Dump (.csv) qui", type=["csv"])
-    
+
     if uploaded_file:
-        if st.button("ESEGUI NORMALIZZAZIONE ALGORITMICA", type="primary"):
-            with st.spinner("Ingegnerizzazione dei dati in corso..."):
+        if st.button("ESEGUI ELABORAZIONE ENTERPRISE HIGH-END", type="primary"):
+            with st.spinner("Ingegnerizzazione vettoriale del database in corso..."):
                 import time
                 import numpy as np
-                time.sleep(0.7)
+                import re
+                from datetime import datetime
+                
+                start_time = time.time()
                 try:
-                    # Gestione Avanzata Encoding
+                    # 1. Parsing & Encoding Auto-Detect
                     try:
                         df_raw = pd.read_csv(uploaded_file, sep=None, engine='python', encoding='utf-8')
-                    except UnicodeDecodeError:
+                    except Exception:
                         uploaded_file.seek(0)
                         df_raw = pd.read_csv(uploaded_file, sep=None, engine='python', encoding='latin1')
-                        
+
                     r_in = len(df_raw)
                     df_clean = df_raw.copy()
-                    
-                    # 1. Normalizzazione Intestazioni (Headers) tramite Regex
-                    df_clean.columns = df_clean.columns.astype(str).str.strip().str.lower()
-                    df_clean.columns = df_clean.columns.str.replace(r'[^a-z0-9_]', '_', regex=True).str.replace(r'_+', '_', regex=True).str.strip('_')
-                    
-                    # 2. Pulizia stringhe: Compressione spazi multipli e gestione NaN reali
-                    df_clean = df_clean.replace(r'^\s*$', np.nan, regex=True)
+
+                    # 2. Header Normalization (Snake Case & Anti-Accenti)
+                    headers = []
+                    for col in df_clean.columns:
+                        c = str(col).strip().lower()
+                        c = re.sub(r'[àáâä]', 'a', c)
+                        c = re.sub(r'[èéêë]', 'e', c)
+                        c = re.sub(r'[ìíîï]', 'i', c)
+                        c = re.sub(r'[òóôö]', 'o', c)
+                        c = re.sub(r'[ùúûü]', 'u', c)
+                        c = re.sub(r'[^a-z0-9_]', '_', c)
+                        c = re.sub(r'_+', '_', c).strip('_')
+                        headers.append(c if c else 'colonna')
+                    df_clean.columns = headers
+
+                    # 3. Drop righe 100% vuote
+                    df_clean = df_clean.dropna(how='all')
+
+                    # 4. Compressione Spazi Multipli
                     for col in df_clean.columns:
                         if df_clean[col].dtype == 'object':
-                            df_clean[col] = df_clean[col].astype(str).replace(r'\s+', ' ', regex=True).str.strip()
-                            df_clean[col] = df_clean[col].replace(['nan', 'None', 'null', ''], np.nan)
-                    
-                    # 3. Formattazione Nomi Propri
-                    nome_cols = [c for c in df_clean.columns if any(k in c for k in ['nome', 'cognome', 'name'])]
-                    for col in nome_cols:
-                        df_clean[col] = df_clean[col].str.title()
+                            df_clean[col] = df_clean[col].astype(str).str.strip()
+                            df_clean[col] = df_clean[col].replace(r'\s+', ' ', regex=True)
+                            df_clean[col] = df_clean[col].replace(['nan', 'None', 'null', 'NaN', 'N/A', 'n/a', ''], np.nan)
 
-                    # 4. Estrazione e Sanificazione Telefoni
-                    tel_cols = [c for c in df_clean.columns if any(k in c for k in ['tel', 'phone', 'cell'])]
-                    for col in tel_cols:
-                        df_clean[col] = df_clean[col].astype(str).str.replace(r'[^\d+]', '', regex=True).replace('', np.nan)
-                        
-                    # 5. Deduplicazione Assoluta
-                    df_clean = df_clean.drop_duplicates()
-                    
-                    # 6. Validazione Email Avanzata con Regex
+                    # 5. Smart Title Case per Nomi
+                    nome_cols = [c for c in df_clean.columns if any(k in c for k in ['nome', 'cognome', 'name', 'cliente', 'referente'])]
+                    for col in nome_cols:
+                        if col in df_clean.columns and df_clean[col].dtype == 'object':
+                            df_clean[col] = df_clean[col].apply(lambda x: str(x).title() if pd.notna(x) and x != 'nan' else x)
+
+                    # 6. Email Auto-Repair Engine (Typo Correction)
+                    email_typos = {
+                        r'@gmaill?\.com$': '@gmail.com',
+                        r'@gamil\.com$': '@gmail.com',
+                        r'@gmal\.com$': '@gmail.com',
+                        r'@outlok\.com$': '@outlook.com',
+                        r'@hotmaill?\.com$': '@hotmail.com',
+                        r'@yaho\.com$': '@yahoo.com',
+                        r'@virgilo\.it$': '@virgilio.it',
+                        r'@tiscali\.com$': '@tiscali.it'
+                    }
                     email_cols = [c for c in df_clean.columns if 'mail' in c]
+                    repaired_emails = 0
                     if email_cols:
-                        col_mail = email_cols[0]
-                        df_clean[col_mail] = df_clean[col_mail].str.lower()
-                        # Validazione strutturale esatta
-                        regex_mail = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
-                        valid_mail_mask = df_clean[col_mail].str.match(regex_mail, na=False)
-                        df_clean = df_clean[valid_mail_mask]
-                        log_m = "Sanificazione array email e formattazione vettoriale completata. Record sintatticamente errati scartati."
-                    else:
-                        log_m = "<span class='warn-log'>[WARN] Colonna 'Email' assente. Eseguita ottimizzazione Regex globale sui record esistenti.</span>"
-                        
+                        col_m = email_cols[0]
+                        if df_clean[col_m].dtype == 'object':
+                            df_clean[col_m] = df_clean[col_m].astype(str).str.lower().str.strip()
+                            for pattern, target in email_typos.items():
+                                mask = df_clean[col_m].str.contains(pattern, regex=True, na=False)
+                                repaired_emails += int(mask.sum())
+                                df_clean[col_m] = df_clean[col_m].str.replace(pattern, target, regex=True)
+                            df_clean[col_m] = df_clean[col_m].replace(['nan', 'none', 'null', ''], np.nan)
+
+                    # 7. Telefono Sanitizer
+                    tel_cols = [c for c in df_clean.columns if any(k in c for k in ['tel', 'phone', 'cell', 'mobile', 'telefono'])]
+                    for col in tel_cols:
+                        if col in df_clean.columns and df_clean[col].dtype == 'object':
+                            df_clean[col] = df_clean[col].apply(lambda x: re.sub(r'[^\d+]', '', str(x)) if pd.notna(x) and x != 'nan' else np.nan)
+
+                    # 8. Valute & Numeri Parser
+                    num_cols = [c for c in df_clean.columns if any(k in c for k in ['fatturato', 'importo', 'prezzo', 'revenue', 'amount', 'totale', 'valore'])]
+                    for col in num_cols:
+                        if col in df_clean.columns and df_clean[col].dtype == 'object':
+                            def clean_num(val):
+                                if pd.isna(val) or val == 'nan': return np.nan
+                                v = str(val).replace('€', '').replace('$', '').replace('£', '').strip()
+                                v = re.sub(r'\s+', '', v)
+                                if '.' in v and ',' in v:
+                                    if v.find('.') < v.find(','):
+                                        v = v.replace('.', '').replace(',', '.')
+                                    else:
+                                        v = v.replace(',', '')
+                                elif ',' in v:
+                                    v = v.replace(',', '.')
+                                try:
+                                    return float(v)
+                                except:
+                                    return val
+                            df_clean[col] = df_clean[col].apply(clean_num)
+
+                    # 9. ISO Date Standardizer
+                    date_cols = [c for c in df_clean.columns if any(k in c for k in ['data', 'date', 'iscrizione', 'created', 'time'])]
+                    for col in date_cols:
+                        if col in df_clean.columns:
+                            try:
+                                parsed_dates = pd.to_datetime(df_clean[col], dayfirst=True, errors='coerce')
+                                df_clean[col] = parsed_dates.dt.strftime('%Y-%m-%d').fillna(df_clean[col])
+                            except Exception:
+                                pass
+
+                    # 10. Deduplicazione Intelligente (Solo Duplicati 100% Identici)
+                    r_before_dedup = len(df_clean)
+                    df_clean = df_clean.drop_duplicates()
+                    dups_removed = r_before_dedup - len(df_clean)
+
                     r_out = len(df_clean)
-                    st.session_state.m1_buffer = df_clean
+                    elapsed = round((time.time() - start_time) * 1000, 2)
                     
-                    # Recupera funzione orario per i log
+                    st.session_state.m1_buffer = df_clean
+                    st.session_state.m1_metrics = {
+                        "r_in": r_in,
+                        "r_out": r_out,
+                        "dups": dups_removed,
+                        "repaired_emails": repaired_emails,
+                        "latency": elapsed
+                    }
+
                     def sys_time_local():
-                        from datetime import datetime
                         return datetime.now().strftime('%H:%M:%S.%f')[:-3]
-                        
-                    st.session_state.sys_logs = f"<span class='sys-log'>[{sys_time_local()}] [root@nexus] ~ Data Parsing Eseguito. Latenza: 1.2ms.</span><br>{log_m}<br><br><span class='acc-log'>Record Iniziali: {r_in} | Record Validi: {r_out} | Anomalie Distrutte: {r_in - r_out}</span>"
+
+                    st.session_state.sys_logs = (
+                        f"<span class='sys-log'>[{sys_time_local()}] [root@nexus] ~ Pipeline Enterprise Eseguita. Latenza: {elapsed}ms.</span><br>"
+                        f"<span class='acc-log'>[OK] Modalità Zero-Loss Attiva. Retention Rate: {round((r_out/r_in)*100, 1) if r_in > 0 else 100}%.</span><br>"
+                        f"<span class='acc-log'>[OK] Domini Email Riparati: {repaired_emails} | Duplicati Identici Eliminati: {dups_removed}</span>"
+                    )
                 except Exception as e:
-                    from datetime import datetime
-                    st.session_state.sys_logs = f"<span class='err-log'>[{datetime.now().strftime('%H:%M:%S.%f')[:-3]}] [FATAL] Impossibile elaborare il file. Dettagli eccezione strutturale: {e}</span>"
+                    st.session_state.sys_logs = f"<span class='err-log'>[{datetime.now().strftime('%H:%M:%S.%f')[:-3]}] [FATAL ERROR] Impossibile elaborare il dataset: {e}</span>"
 
     if 'm1_buffer' in st.session_state and st.session_state.m1_buffer is not None:
         st.markdown(f"<div class='cmd-window'>{st.session_state.sys_logs}</div><br>", unsafe_allow_html=True)
-        st.markdown("<p style='color:#A1A1AA; font-size:0.85rem; font-weight:600;'>ANTEPRIMA DATI PULITI (Prime 10 righe):</p>", unsafe_allow_html=True)
-        st.dataframe(st.session_state.m1_buffer.head(10), use_container_width=True)
+        
+        # Dashboard KPI Metrics High-End
+        if 'm1_metrics' in st.session_state:
+            m = st.session_state.m1_metrics
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric("Record Iniziali", m["r_in"])
+            with col2:
+                st.metric("Record Validi Salvati", m["r_out"], delta=f"{m['r_out'] - m['r_in']} dup")
+            with col3:
+                st.metric("Email Riparate", m["repaired_emails"])
+            with col4:
+                st.metric("Latenza Parsing", f"{m['latency']} ms")
+
+        st.markdown("<p style='color:#A1A1AA; font-size:0.85rem; font-weight:600; margin-top:15px;'>ANTEPRIMA DATABASE NORMALIZZATO (DATABASE COMPLETO):</p>", unsafe_allow_html=True)
+        st.dataframe(st.session_state.m1_buffer, use_container_width=True)
         
         # Gatekeeper PLG
-        if lead_capture_gateway("mod_01", "Download Database Pulito"):
-            st.download_button("📥 SCARICA DATABASE PULITO (.CSV)", st.session_state.m1_buffer.to_csv(index=False).encode('utf-8-sig'), "nexus_data_clean.csv", "text/csv")
-            
+        if lead_capture_gateway("mod_01", "Download Database Pulito High-End"):
+            st.download_button(
+                "📥 SCARICA DATABASE SANIFICATO (.CSV)",
+                st.session_state.m1_buffer.to_csv(index=False).encode('utf-8-sig'),
+                "nexus_enterprise_clean.csv",
+                "text/csv"
+            )
+
     st.markdown("</div>", unsafe_allow_html=True)
 
 # --- 02. PROTOCOLLO .ENV ---
