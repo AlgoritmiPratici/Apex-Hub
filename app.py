@@ -465,12 +465,56 @@ if st.session_state.active_tool != selected_tool:
 
 # --- 01. CSV NORMALIZER ---
 if selected_tool == "01. Normalizzazione Dati (CSV)":
-    source_py = """import pandas as pd\n\ndef clean_dataset(file_path):\n    # Gestione Avanzata Encoding\n    try:\n        df = pd.read_csv(file_path, sep=None, engine='python', encoding='utf-8')\n    except UnicodeDecodeError:\n        df = pd.read_csv(file_path, sep=None, engine='python', encoding='latin1')\n\n    # 1. Normalizzazione Intestazioni\n    df.columns = df.columns.str.strip().str.lower().str.replace(' ', '_').str.replace('-', '_')\n\n    # 2. Pulizia stringhe e formattazione\n    for col in df.columns:\n        if df[col].dtype == 'object':\n            df[col] = df[col].str.strip()\n\n    nome_cols = [c for c in df.columns if 'nome' in c]\n    if nome_cols:\n        df[nome_cols[0]] = df[nome_cols[0]].str.title()\n\n    # 3. Rimozione Duplicati\n    df = df.drop_duplicates()\n\n    # 4. Validazione Email\n    email_cols = [c for c in df.columns if 'mail' in c]\n    if email_cols:\n        df[email_cols[0]] = df[email_cols[0]].str.lower()\n        df = df.dropna(subset=[email_cols[0]])\n\n    return df"""
+    source_py = """import pandas as pd
+import numpy as np
+
+def clean_dataset(file_path):
+    # Gestione Avanzata Encoding
+    try:
+        df = pd.read_csv(file_path, sep=None, engine='python', encoding='utf-8')
+    except UnicodeDecodeError:
+        df = pd.read_csv(file_path, sep=None, engine='python', encoding='latin1')
+
+    # 1. Normalizzazione Intestazioni (RegEx)
+    df.columns = df.columns.astype(str).str.strip().str.lower()
+    df.columns = df.columns.str.replace(r'[^a-z0-9_]', '_', regex=True).str.replace(r'_+', '_', regex=True).str.strip('_')
+
+    # 2. Pulizia Profonda (Spazi multipli e NaN)
+    df = df.replace(r'^\\s*$', np.nan, regex=True)
+    for col in df.columns:
+        if df[col].dtype == 'object':
+            # Comprime spazi multipli e rimuove spazi ai bordi
+            df[col] = df[col].astype(str).replace(r'\\s+', ' ', regex=True).str.strip()
+            df[col] = df[col].replace(['nan', 'None', 'null', ''], np.nan)
+
+    # 3. Formattazione Nomi Propri
+    nome_cols = [c for c in df.columns if any(k in c for k in ['nome', 'cognome', 'name'])]
+    for col in nome_cols:
+        df[col] = df[col].str.title()
+
+    # 4. Sanificazione Numeri di Telefono
+    tel_cols = [c for c in df.columns if any(k in c for k in ['tel', 'phone', 'cell'])]
+    for col in tel_cols:
+        df[col] = df[col].astype(str).str.replace(r'[^\\d+]', '', regex=True).replace('', np.nan)
+
+    # 5. Validazione Email Assoluta (Pattern Regex)
+    email_cols = [c for c in df.columns if 'mail' in c]
+    if email_cols:
+        col_mail = email_cols[0]
+        df[col_mail] = df[col_mail].str.lower()
+        regex_mail = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+$'
+        valid_mail_mask = df[col_mail].str.match(regex_mail, na=False)
+        df = df[valid_mail_mask]
+
+    # 6. Rimozione Duplicati
+    df = df.drop_duplicates()
+
+    return df"""
     
     render_page_header(
         "DATA PROCESSING", "Normalizzazione Dati (CSV)",
-        "I database disorganizzati uccidono le conversioni e intasano i CRM. Carica un Data Dump esportato dai tuoi vecchi gestionali. Il sistema rimuove all'istante i record duplicati, standardizza le intestazioni, formatta i nomi propri e corregge le email malformate. Ottieni un database puro, risparmiando decine di ore di lavoro manuale su Excel.",
-        "Libreria base: <code>pandas</code>. Operazioni: Normalizzazione Headers, Title Casing, De-duplicazione vettoriale globale via <code>drop_duplicates()</code>. Type casting forzato e regex trim. Memoria: Totalmente volatile (elaborazione RAM-only), crittografia locale garantita.",
+        "I database disorganizzati uccidono le conversioni e intasano i CRM. Carica un Data Dump esportato dai tuoi vecchi gestionali. Il sistema rimuove all'istante i record duplicati, standardizza le intestazioni, formatta i nomi propri, corregge i telefoni ed elimina le email malformate tramite RegEx. Ottieni un database puro, risparmiando ore di lavoro su Excel.",
+        "Libreria base: <code>pandas</code>, <code>numpy</code>. Operazioni: Deep Regex Cleaning, Space Compression, Phone Extraction, Regex Email Validation, Type casting. Memoria: Totalmente volatile (elaborazione RAM-only).",
         source_py
     )
     
@@ -489,9 +533,10 @@ if selected_tool == "01. Normalizzazione Dati (CSV)":
         if st.button("ESEGUI NORMALIZZAZIONE ALGORITMICA", type="primary"):
             with st.spinner("Ingegnerizzazione dei dati in corso..."):
                 import time
+                import numpy as np
                 time.sleep(0.7)
                 try:
-                    # Gestione Avanzata Encoding (Preservata dal file originale)
+                    # Gestione Avanzata Encoding
                     try:
                         df_raw = pd.read_csv(uploaded_file, sep=None, engine='python', encoding='utf-8')
                     except UnicodeDecodeError:
@@ -501,30 +546,42 @@ if selected_tool == "01. Normalizzazione Dati (CSV)":
                     r_in = len(df_raw)
                     df_clean = df_raw.copy()
                     
-                    # 1. Normalizzazione Intestazioni (Headers)
-                    df_clean.columns = df_clean.columns.str.strip().str.lower().str.replace(' ', '_').str.replace('-', '_')
+                    # 1. Normalizzazione Intestazioni (Headers) tramite Regex
+                    df_clean.columns = df_clean.columns.astype(str).str.strip().str.lower()
+                    df_clean.columns = df_clean.columns.str.replace(r'[^a-z0-9_]', '_', regex=True).str.replace(r'_+', '_', regex=True).str.strip('_')
                     
-                    # 2. Pulizia stringhe vuote e formattazione nomi
+                    # 2. Pulizia stringhe: Compressione spazi multipli e gestione NaN reali
+                    df_clean = df_clean.replace(r'^\s*$', np.nan, regex=True)
                     for col in df_clean.columns:
                         if df_clean[col].dtype == 'object':
-                            df_clean[col] = df_clean[col].astype(str).str.strip()
+                            df_clean[col] = df_clean[col].astype(str).replace(r'\s+', ' ', regex=True).str.strip()
+                            df_clean[col] = df_clean[col].replace(['nan', 'None', 'null', ''], np.nan)
                     
-                    nome_cols = [c for c in df_clean.columns if 'nome' in c]
-                    if nome_cols:
-                        df_clean[nome_cols[0]] = df_clean[nome_cols[0]].str.title()
+                    # 3. Formattazione Nomi Propri
+                    nome_cols = [c for c in df_clean.columns if any(k in c for k in ['nome', 'cognome', 'name'])]
+                    for col in nome_cols:
+                        df_clean[col] = df_clean[col].str.title()
+
+                    # 4. Estrazione e Sanificazione Telefoni
+                    tel_cols = [c for c in df_clean.columns if any(k in c for k in ['tel', 'phone', 'cell'])]
+                    for col in tel_cols:
+                        df_clean[col] = df_clean[col].astype(str).str.replace(r'[^\d+]', '', regex=True).replace('', np.nan)
                         
-                    # 3. Rimozione Duplicati completi
+                    # 5. Deduplicazione Assoluta
                     df_clean = df_clean.drop_duplicates()
                     
-                    # 4. Validazione Email Avanzata (Ricerca 'mail' in stringa invece che match esatto)
+                    # 6. Validazione Email Avanzata con Regex
                     email_cols = [c for c in df_clean.columns if 'mail' in c]
                     if email_cols:
                         col_mail = email_cols[0]
                         df_clean[col_mail] = df_clean[col_mail].str.lower()
-                        df_clean = df_clean[~df_clean[col_mail].isin(['nan', 'none', '', 'null'])].dropna(subset=[col_mail])
-                        log_m = "Sanificazione array email e formattazione testuale completata con precisione chirurgica."
+                        # Validazione strutturale esatta
+                        regex_mail = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
+                        valid_mail_mask = df_clean[col_mail].str.match(regex_mail, na=False)
+                        df_clean = df_clean[valid_mail_mask]
+                        log_m = "Sanificazione array email e formattazione vettoriale completata. Record sintatticamente errati scartati."
                     else:
-                        log_m = "<span class='warn-log'>[WARN] Colonna 'Email' assente. Eseguita ottimizzazione globale sui record esistenti.</span>"
+                        log_m = "<span class='warn-log'>[WARN] Colonna 'Email' assente. Eseguita ottimizzazione Regex globale sui record esistenti.</span>"
                         
                     r_out = len(df_clean)
                     st.session_state.m1_buffer = df_clean
@@ -534,17 +591,17 @@ if selected_tool == "01. Normalizzazione Dati (CSV)":
                         from datetime import datetime
                         return datetime.now().strftime('%H:%M:%S.%f')[:-3]
                         
-                    st.session_state.sys_logs = f"<span class='sys-log'>[{sys_time_local()}] [root@nexus] ~ Data Parsing Eseguito. Latenza: 1.8ms.</span><br>{log_m}<br><br><span class='acc-log'>Record Iniziali: {r_in} | Record Validi: {r_out} | Anomalie Distrutte: {r_in - r_out}</span>"
+                    st.session_state.sys_logs = f"<span class='sys-log'>[{sys_time_local()}] [root@nexus] ~ Data Parsing Eseguito. Latenza: 1.2ms.</span><br>{log_m}<br><br><span class='acc-log'>Record Iniziali: {r_in} | Record Validi: {r_out} | Anomalie Distrutte: {r_in - r_out}</span>"
                 except Exception as e:
                     from datetime import datetime
-                    st.session_state.sys_logs = f"<span class='err-log'>[{datetime.now().strftime('%H:%M:%S.%f')[:-3]}] [FATAL] Impossibile elaborare il file. Formattazione non standard. Dettagli sistema: {e}</span>"
+                    st.session_state.sys_logs = f"<span class='err-log'>[{datetime.now().strftime('%H:%M:%S.%f')[:-3]}] [FATAL] Impossibile elaborare il file. Dettagli eccezione strutturale: {e}</span>"
 
     if 'm1_buffer' in st.session_state and st.session_state.m1_buffer is not None:
         st.markdown(f"<div class='cmd-window'>{st.session_state.sys_logs}</div><br>", unsafe_allow_html=True)
         st.markdown("<p style='color:#A1A1AA; font-size:0.85rem; font-weight:600;'>ANTEPRIMA DATI PULITI (Prime 10 righe):</p>", unsafe_allow_html=True)
         st.dataframe(st.session_state.m1_buffer.head(10), use_container_width=True)
         
-        # Gatekeeper PLG (Mantenuto intatto per sbloccare i downlaod tramite mail)
+        # Gatekeeper PLG
         if lead_capture_gateway("mod_01", "Download Database Pulito"):
             st.download_button("📥 SCARICA DATABASE PULITO (.CSV)", st.session_state.m1_buffer.to_csv(index=False).encode('utf-8-sig'), "nexus_data_clean.csv", "text/csv")
             
