@@ -1110,8 +1110,10 @@ def calculate_true_burn_rate(legacy_stack, operational_debt):
         insights_operativi.append("⚠️ **Collo di Bottiglia Amministrativo:** La compilazione manuale frena la velocità di incasso. Costo operativo stimato: 300€/mese.")
     if no_kpi:
         hidden_costs += 400
+        insights_operativi.append("⚠️ **Navigazione a Vista:** Senza Dashboard KPI in tempo reale, perdi reattività sulle decisioni. Costo occulto stimato: 400€/mese in inefficienze strategiche.")
     if team_caos:
         hidden_costs += 350
+        insights_operativi.append("⚠️ **Dispersione Informativa:** Il caos comunicativo (solo WhatsApp/Email) frammenta i processi. Costo occulto stimato: 350€/mese in tempo di allineamento perso.")
         
     # Calcoli Logica SaaS e Soluzioni (Mercato ITA/Internazionale)
     if zapier: 
@@ -1153,15 +1155,18 @@ def calculate_true_burn_rate(legacy_stack, operational_debt):
 
     total_tco = burn_rate + hidden_costs
     
+    # IL TEASER (Visibile a tutti)
     st.markdown("---")
+    st.markdown("<h4 style='color:#FAFAFA;'>IL TUO DIAGNOSTICO FINANZIARIO:</h4>", unsafe_allow_html=True)
     c_res1, c_res2, c_res3 = st.columns(3)
-    c_res1.metric("SaaS Burn Rate", f"€ {burn_rate} / mese")
+    c_res1.metric("SaaS Burn Rate (Spesa)", f"€ {burn_rate} / mese")
     c_res2.metric("Debito Operativo (Inefficienze)", f"€ {hidden_costs} / mese", delta="Perdita Stimata", delta_color="inverse")
-    c_res3.metric("TCO NEXUS (Open Source)", "€ 0 / mese", f"+ € {total_tco} Salvati/Mese", delta_color="normal")
+    c_res3.metric("Capitale Disperso Totale", f"€ {total_tco} / mese")
     
     if total_tco > 0:
-        # Gatekeeper PLG
-        if lead_capture_gateway("mod_06", "Genera Audit Architetturale e Roadmap"):
+        # IL LOCK (Integrazione pulita con la tua architettura globale)
+        # Sfruttiamo la funzione nativa che gestisce già Make.com, Iubenda e il Double Opt-In
+        if lead_capture_gateway("mod_06", "Sblocca Roadmap di Migrazione Open Source"):
             st.markdown("<br><h4 style='color:#FAFAFA;'>DIAGNOSTICA AVANZATA E ROADMAP DI MIGRAZIONE</h4>", unsafe_allow_html=True)
             
             if insights_operativi:
@@ -1244,14 +1249,15 @@ def financial_telemetry(mrr, saas_cost, churn, ltv_increment, reinvestment_rate)
         
     delta_fatturato_m12 = crescita_nexus[-1] - crescita_tradizionale[-1]
     
+    # IL TEASER (Visibile a tutti)
     st.markdown("---")
     c7, c8, c9 = st.columns(3)
     c7.metric("Risparmio Annuo Generato", f"€ {risparmio_annuo:,.0f}", delta="Free Cash Flow")
     c8.metric("Nuovi Clienti Mensili Extra", f"+ {nuovi_clienti_mese:,.1f}", delta="Costo Zero (Reinvestimento)")
     c9.metric("Delta Fatturato (M12)", f"€ {delta_fatturato_m12:,.0f}", delta="Interesse Composto")
     
-    # Gatekeeper PLG
-    if lead_capture_gateway("mod_07", "Genera Modello Stocastico e Grafici"):
+    # IL LOCK (Sfruttiamo l'infrastruttura globale)
+    if lead_capture_gateway("mod_07", "Genera Grafici Vettoriali e Analisi CFO"):
         st.markdown("<br><h4 style='color:#FAFAFA;'>PROIEZIONE VETTORIALE DEI FLUSSI DI CASSA (12 MESI)</h4>", unsafe_allow_html=True)
         
         import plotly.graph_objects as go
