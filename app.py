@@ -468,8 +468,9 @@ if selected_tool == "01. Normalizzazione Dati (CSV)":
     source_py = """import pandas as pd
 import numpy as np
 import re
+from datetime import datetime
 
-def clean_dataset_nexus_v8_quantum(file_path):
+def clean_dataset_nexus_elite(file_path):
     # Parsing Blindato Vettoriale
     try:
         df = pd.read_csv(file_path, sep=',', encoding='utf-8', dtype=str)
@@ -482,70 +483,65 @@ def clean_dataset_nexus_v8_quantum(file_path):
     # 1. Normalizzazione Intestazioni (Snake Case Assoluto)
     df_clean.columns = [re.sub(r'_+', '_', re.sub(r'[^a-z0-9_]', '_', re.sub(r'[àáâäèéêëìíîïòóôöùúûü]', lambda m: {'à':'a','è':'e','é':'e','ì':'i','ò':'o','ù':'u'}.get(m.group(0), 'a'), str(c).strip().lower()))).strip('_') or 'colonna' for c in df_clean.columns]
 
-    # 2. Pulizia Spazi e NaN Vettoriale
+    # 2. Pulizia Caratteri Invisibili, Spazi e NaN
     df_clean = df_clean.dropna(how='all')
     for col in df_clean.columns:
-        df_clean[col] = df_clean[col].replace([r'^\s*$', 'nan', 'None', 'null', 'NaN', 'N/A', 'n/a'], np.nan, regex=True)
         if df_clean[col].dtype == 'object':
+            # Rimuove caratteri zero-width e spazi extra
+            df_clean[col] = df_clean[col].str.replace(r'[\u200b\u200e\u200c\ufeff]', '', regex=True)
             df_clean[col] = df_clean[col].str.strip().replace(r'\s+', ' ', regex=True)
+        df_clean[col] = df_clean[col].replace([r'^\s*$', 'nan', 'None', 'null', 'NaN', 'N/A', 'n/a'], np.nan, regex=True)
 
-    # 3. Smart Data Routing Vettoriale (Cross-Column Salvage)
+    # 3. Allineamento Intelligente Colonne (Email/Telefono)
     email_cols = [c for c in df_clean.columns if 'mail' in c]
     tel_cols = [c for c in df_clean.columns if any(k in c for k in ['tel', 'phone', 'cell', 'mobile', 'telefono'])]
 
     if email_cols and tel_cols:
         c_m, c_t = email_cols[0], tel_cols[0]
         
-        # Maschere booleane per riconoscimento pattern
         is_m_phone = df_clean[c_m].str.match(r'^[\d\s\+\-\(\)]+$', na=False) & (df_clean[c_m].str.replace(r'\D', '', regex=True).str.len() >= 6)
         is_t_email = df_clean[c_t].str.contains('@', na=False)
         m_is_empty = df_clean[c_m].isna() | (df_clean[c_m] == '')
         t_is_empty = df_clean[c_t].isna() | (df_clean[c_t] == '')
 
-        # Caso 1: Telefono bloccato nella Mail, e Telefono vuoto -> Sposta
         move_to_t = is_m_phone & t_is_empty
         df_clean.loc[move_to_t, c_t] = df_clean.loc[move_to_t, c_m]
         df_clean.loc[move_to_t, c_m] = np.nan
 
-        # Caso 2: Mail bloccata nel Telefono, e Mail vuota -> Sposta
         move_to_m = is_t_email & m_is_empty
         df_clean.loc[move_to_m, c_m] = df_clean.loc[move_to_m, c_t]
         df_clean.loc[move_to_m, c_t] = np.nan
 
-        # Caso 3: Esatto scambio (Telefono in mail E Mail in telefono)
         mask_swap = is_m_phone & is_t_email
         if mask_swap.any():
             df_clean.loc[mask_swap, [c_m, c_t]] = df_clean.loc[mask_swap, [c_t, c_m]].values
 
-    # 4. Email Auto-Repair, Firewall & B2B Enrichment
+    # 4. Riparazione Email, Firewall & Estrazione Dominio B2B
     if email_cols:
         c_m = email_cols[0]
         df_clean[c_m] = df_clean[c_m].str.lower().str.strip()
         
-        # Correzione Typo
         for pattern, target in {r'@gmail?l?\.com$': '@gmail.com', r'@gamil\.com$': '@gmail.com', r'@hotmaill?\.com$': '@hotmail.com', r'@yaho+\.com$': '@yahoo.com', r'@virgilo\.it$': '@virgilio.it'}.items():
             df_clean[c_m] = df_clean[c_m].str.replace(pattern, target, regex=True)
             
-        # Absolute Firewall
         strict_regex = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
         valid_mask = df_clean[c_m].str.match(strict_regex, na=False) | df_clean[c_m].isna()
         df_clean[c_m] = df_clean[c_m].where(valid_mask, np.nan)
         df_clean.loc[df_clean[c_m].isin(['test@test.com', 'admin@admin.com']), c_m] = np.nan
         
-        # B2B Enrichment
         if 'dominio_aziendale' in df_clean.columns: df_clean = df_clean.drop(columns=['dominio_aziendale'])
         free_mails = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'virgilio.it', 'libero.it', 'tiscali.it', 'icloud.com', 'me.com', 'alice.it']
         domains = df_clean[c_m].str.split('@').str[1]
         b2b_mask = ~domains.isin(free_mails) & domains.notna()
         df_clean.insert(df_clean.columns.get_loc(c_m) + 1, 'dominio_aziendale', np.where(b2b_mask, domains, np.nan))
 
-    # 5. Sanificazione Nomi Vettoriale
+    # 5. Pulizia Nomi
     nome_cols = [c for c in df_clean.columns if any(k in c for k in ['nome', 'cognome', 'name', 'cliente', 'referente'])]
     for col in nome_cols:
         df_clean[col] = df_clean[col].str.replace(r"[^a-zA-Z\s\']", "", regex=True).str.strip().str.title().replace('', np.nan)
         df_clean.loc[df_clean[col].str.lower().isin(['test', 'prova', 'admin', 'sconosciuto', 'nessuno']), col] = np.nan
 
-    # 6. Standardizzazione Telecom (E.164 Vettoriale)
+    # 6. Formattazione Internazionale Numeri (+39)
     if tel_cols:
         c_t = tel_cols[0]
         s = df_clean[c_t].str.replace(r'[^\d+]', '', regex=True)
@@ -554,7 +550,7 @@ def clean_dataset_nexus_v8_quantum(file_path):
         s = np.where(mask_ita, '+39' + s, s)
         df_clean[c_t] = pd.Series(s).replace('', np.nan)
 
-    # 7. Parsing Valute
+    # 7. Formattazione Valute
     num_cols = [c for c in df_clean.columns if any(k in c for k in ['fatturato', 'importo', 'prezzo', 'revenue', 'totale'])]
     for col in num_cols:
         def clean_num(val):
@@ -566,38 +562,50 @@ def clean_dataset_nexus_v8_quantum(file_path):
             try: return float(v)
             except: return val
         df_clean[col] = df_clean[col].apply(clean_num)
-
-    # 8. CRM-GRADE MERGE (Squash)
+        
+    # 8. Unione Contatti Duplicati o Frammentati (CRM Merge)
     if nome_cols:
         df_clean['data_count'] = df_clean.notna().sum(axis=1)
         df_clean = df_clean.sort_values(by=['data_count'], ascending=False).drop(columns=['data_count'])
         df_clean = df_clean.groupby(nome_cols[0], dropna=False, as_index=False).first()
 
-    # 9. Clean-up & Drop
+    # 9. Pulizia finale colonne e righe fantasma
     df_clean = df_clean.dropna(axis=1, how='all').drop_duplicates()
+
+    # 10. LEAD SCORING: Calcolo Qualità Contatto
+    score = np.zeros(len(df_clean))
+    if email_cols: score += np.where(df_clean[email_cols[0]].notna(), 2, 0)
+    if tel_cols: score += np.where(df_clean[tel_cols[0]].notna(), 1, 0)
+    if nome_cols: score += np.where(df_clean[nome_cols[0]].notna(), 1, 0)
+
+    conditions = [score == 4, score == 3, score >= 1]
+    choices = ['⭐️ Eccellente', '🟢 Ottimo', '🟠 Accettabile']
+    if 'rating_contatto' in df_clean.columns: df_clean = df_clean.drop(columns=['rating_contatto'])
+    df_clean.insert(0, 'rating_contatto', np.select(conditions, choices, default='🔴 Scarso'))
+
     return df_clean"""
 
     render_page_header(
-        "GESTIONE DATI", "Enterprise Normalizer & Standardizer V8",
-        "La qualità dei dati determina il ROI delle tue campagne. Carica il tuo archivio CSV. Questo motore vettoriale corregge le email errate, sposta i contatti disallineati, <b>fonde i duplicati frammentati</b> ed estrae i domini web aziendali per il tuo Cold Outreach. Inoltre, inietta automaticamente il prefisso +39 ai cellulari italiani, preparandoli per le API di WhatsApp.",
-        "Tecnologia Core: Motore Pandas V8 (Quantum Vectorization). Operazioni: Smart Matrix Routing, Absolute Regex Firewall, E.164 Telecom Injection, Deep CRM Squashing.",
+        "DATA ENRICHMENT & CLEANSING", "Ottimizzazione Database B2B",
+        "La qualità dei tuoi dati determina le tue vendite. Carica un archivio disordinato: il nostro sistema correggerà automaticamente le email errate, riallineerà i dati mischiati e <b>fonderà i profili doppi</b> per creare contatti perfetti. Il motore estrae inoltre i domini aziendali per il tuo Cold Outreach e assegna un <b>Punteggio di Qualità</b> a ogni lead.",
+        "Motore Nexus: Analisi Semantica, Filtro Caratteri Invisibili, Sincronizzazione Cross-Colonna, Standardizzazione Telecom E.164, Lead Health Scoring.",
         source_py
     )
 
     # 👉 [LINK AFFILIAZIONE 1 - AIRTABLE]
     render_affiliate_box(
         "Airtable", 
-        "Ora hai un database standardizzato e arricchito con domini B2B. Esportalo su Airtable per generare pipeline di vendita e gestire le automazioni senza usare codice.", 
+        "Il tuo database ora è segmentato e arricchito con i domini aziendali. Esportalo su Airtable per creare la tua pipeline di vendita visiva e gestire i contatti senza usare codice.", 
         "https://airtable.com", 
-        "Crea un account gratuito su Airtable"
+        "Crea il tuo CRM su Airtable"
     )
 
     st.markdown("<div class='nexus-card'>", unsafe_allow_html=True)
-    uploaded_file = st.file_uploader("Trascina il tuo CSV qui", type=["csv"])
+    uploaded_file = st.file_uploader("Trascina il tuo file CSV qui", type=["csv"])
 
     if uploaded_file:
-        if st.button("ESEGUI STANDARD V8 (QUANTUM ENGINE)", type="primary"):
-            with st.spinner("Analisi vettoriale, allineamento cross-colonna e iniezione prefissi in corso..."):
+        if st.button("🚀 AVVIA OTTIMIZZAZIONE E ARRICCHIMENTO DATABASE", type="primary"):
+            with st.spinner("Analisi strutturale, allineamento e arricchimento dei lead in corso..."):
                 import time
                 import numpy as np
                 import re
@@ -605,7 +613,7 @@ def clean_dataset_nexus_v8_quantum(file_path):
                 
                 start_time = time.time()
                 try:
-                    # 1. Parsing FORZATO Stringa
+                    # 1. Parsing File Forzato
                     try:
                         df_raw = pd.read_csv(uploaded_file, sep=',', encoding='utf-8', dtype=str)
                         if df_raw.shape[1] <= 1:
@@ -618,7 +626,7 @@ def clean_dataset_nexus_v8_quantum(file_path):
                     r_in = len(df_raw)
                     df_clean = df_raw.copy()
 
-                    # 2. Header Normalization (Snake Case)
+                    # 2. Intestazioni Aziendali
                     headers = []
                     for col in df_clean.columns:
                         c = str(col).strip().lower()
@@ -632,27 +640,26 @@ def clean_dataset_nexus_v8_quantum(file_path):
                         headers.append(c if c else 'colonna')
                     df_clean.columns = headers
 
-                    # 3. Drop righe vuote e pulizia base
+                    # 3. Pulizia Profonda (Spazi e Caratteri Invisibili)
                     df_clean = df_clean.dropna(how='all')
                     for col in df_clean.columns:
-                        df_clean[col] = df_clean[col].replace(r'^\s*$', np.nan, regex=True)
-                        df_clean[col] = df_clean[col].replace(['nan', 'None', 'null', 'NaN', 'N/A', 'n/a'], np.nan)
                         if df_clean[col].dtype == 'object':
+                            df_clean[col] = df_clean[col].str.replace(r'[\u200b\u200e\u200c\ufeff]', '', regex=True)
                             df_clean[col] = df_clean[col].str.strip().replace(r'\s+', ' ', regex=True)
+                        df_clean[col] = df_clean[col].replace([r'^\s*$', 'nan', 'None', 'null', 'NaN', 'N/A', 'n/a'], np.nan, regex=True)
 
-                    # 4. Nomi (Name Purge Vettoriale)
+                    # 4. Formattazione Nomi Elegante
                     nome_cols = [c for c in df_clean.columns if any(k in c for k in ['nome', 'cognome', 'name', 'cliente', 'referente'])]
                     toxic_purged = 0
                     
                     for col in nome_cols:
                         if col in df_clean.columns:
-                            # Togli simboli/numeri, title case
                             df_clean[col] = df_clean[col].str.replace(r"[^a-zA-Z\s\']", "", regex=True).str.strip().str.title().replace('', np.nan)
                             mask_toxic = df_clean[col].str.lower().isin(['test', 'prova', 'admin', 'sconosciuto', 'nessuno'])
                             toxic_purged += int(mask_toxic.sum())
                             df_clean.loc[mask_toxic, col] = np.nan
 
-                    # 5. SMART DATA ROUTING (Vettoriale, zero if/else lenti)
+                    # 5. Riallineamento Dati (Sincronizzazione Email/Tel)
                     routed_data = 0
                     email_cols = [c for c in df_clean.columns if 'mail' in c]
                     tel_cols = [c for c in df_clean.columns if any(k in c for k in ['tel', 'phone', 'cell', 'mobile', 'telefono'])]
@@ -680,7 +687,7 @@ def clean_dataset_nexus_v8_quantum(file_path):
                             df_clean.loc[mask_swap, [c_m, c_t]] = df_clean.loc[mask_swap, [c_t, c_m]].values
                             routed_data += int(mask_swap.sum() * 2)
 
-                    # 6. Email Auto-Repair & ABSOLUTE FIREWALL
+                    # 6. Riparazione Email & Arricchimento Aziendale
                     repaired_emails = 0
                     b2b_domains_found = 0
                     
@@ -696,7 +703,7 @@ def clean_dataset_nexus_v8_quantum(file_path):
                                 repaired_emails += matches
                                 df_clean[c_m] = df_clean[c_m].str.replace(pattern, target, regex=True)
                         
-                        # FIREWALL ASSOLUTO Vettoriale
+                        # Filtro Anti-Spam Email
                         strict_regex = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
                         valid_mask = df_clean[c_m].str.match(strict_regex, na=False) | df_clean[c_m].isna()
                         toxic_purged += int((~valid_mask).sum())
@@ -706,7 +713,7 @@ def clean_dataset_nexus_v8_quantum(file_path):
                         toxic_purged += int(mask_toxic_mail.sum())
                         df_clean.loc[mask_toxic_mail, c_m] = np.nan
                         
-                        # Estrazione B2B
+                        # Estrazione Domini B2B
                         free_mails = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'virgilio.it', 'libero.it', 'tiscali.it', 'icloud.com', 'me.com', 'alice.it']
                         domains = df_clean[c_m].str.split('@').str[1]
                         b2b_mask = ~domains.isin(free_mails) & domains.notna()
@@ -715,7 +722,7 @@ def clean_dataset_nexus_v8_quantum(file_path):
                         if 'dominio_aziendale' in df_clean.columns: df_clean = df_clean.drop(columns=['dominio_aziendale'])
                         df_clean.insert(df_clean.columns.get_loc(c_m) + 1, 'dominio_aziendale', np.where(b2b_mask, domains, np.nan))
 
-                    # 7. TELECOM STANDARDIZATION (Motore Quantum)
+                    # 7. Sincronizzazione Internazionale Telefoni (+39)
                     telecom_standardized = 0
                     if tel_cols:
                         c_t = tel_cols[0]
@@ -727,10 +734,9 @@ def clean_dataset_nexus_v8_quantum(file_path):
                         s = np.where(mask_ita, '+39' + s, s)
                         
                         df_clean[c_t] = pd.Series(s).replace('', np.nan)
-                        # Conta differenze ignorando NaN
                         telecom_standardized = int((df_clean[c_t].fillna('') != orig_tel.fillna('')).sum())
 
-                    # 8. Valute Parser
+                    # 8. Allineamento Valute
                     num_cols = [c for c in df_clean.columns if any(k in c for k in ['fatturato', 'importo', 'prezzo', 'revenue', 'totale'])]
                     for col in num_cols:
                         if col in df_clean.columns:
@@ -744,13 +750,13 @@ def clean_dataset_nexus_v8_quantum(file_path):
                                 except: return val
                             df_clean[col] = df_clean[col].apply(clean_num)
                             
-                    # 9. Date Standardization
+                    # 9. Allineamento Date
                     date_cols = [c for c in df_clean.columns if any(k in c for k in ['data', 'date', 'iscrizione', 'created'])]
                     for col in date_cols:
                         try: df_clean[col] = pd.to_datetime(df_clean[col], dayfirst=True, errors='coerce').dt.strftime('%Y-%m-%d').fillna(df_clean[col])
                         except: pass
 
-                    # 10. CRM-GRADE RECORD MERGING (Squash Assoluto)
+                    # 10. Fusione dei Profili CRM e Deduplicazione
                     squashed_records = 0
                     if nome_cols:
                         c_n = nome_cols[0]
@@ -760,11 +766,21 @@ def clean_dataset_nexus_v8_quantum(file_path):
                         df_clean = df_clean.groupby(c_n, dropna=False, as_index=False).first()
                         squashed_records = r_before - len(df_clean)
 
-                    # 11. Ghost Drop & Deduplicazione Residua
                     df_clean = df_clean.dropna(axis=1, how='all')
                     r_before_dedup = len(df_clean)
                     df_clean = df_clean.drop_duplicates()
                     dups_removed = (r_before_dedup - len(df_clean)) + squashed_records
+
+                    # 11. LEAD HEALTH SCORING (Qualità Contatto)
+                    score = np.zeros(len(df_clean))
+                    if email_cols: score += np.where(df_clean[email_cols[0]].notna(), 2, 0)
+                    if tel_cols: score += np.where(df_clean[tel_cols[0]].notna(), 1, 0)
+                    if nome_cols: score += np.where(df_clean[nome_cols[0]].notna(), 1, 0)
+
+                    conditions = [score == 4, score == 3, score >= 1]
+                    choices = ['⭐️ Eccellente', '🟢 Ottimo', '🟠 Accettabile']
+                    if 'rating_contatto' in df_clean.columns: df_clean = df_clean.drop(columns=['rating_contatto'])
+                    df_clean.insert(0, 'rating_contatto', np.select(conditions, choices, default='🔴 Scarso'))
 
                     r_out = len(df_clean)
                     elapsed = round((time.time() - start_time) * 1000, 2)
@@ -781,11 +797,11 @@ def clean_dataset_nexus_v8_quantum(file_path):
                     def sys_time_local(): return datetime.now().strftime('%H:%M:%S')
 
                     st.session_state.sys_logs = (
-                        f"<span class='sys-log'>[{sys_time_local()}] - Sistema: Operazione Vettoriale V8 completata in soli {elapsed}ms.</span><br>"
-                        f"<span class='acc-log'>✔ Prefissi telefonici inniettati (+39). Contatti frammentati compressi. Database CRM-Ready.</span>"
+                        f"<span class='sys-log'>[{sys_time_local()}] - Sistema: Strutturazione e Arricchimento completati in {elapsed}ms.</span><br>"
+                        f"<span class='acc-log'>✔ Profili CRM sincronizzati. Lead segmentati per qualità. Architettura dati pronta per l'esportazione.</span>"
                     )
                 except Exception as e:
-                    st.session_state.sys_logs = f"<span class='err-log'>[{datetime.now().strftime('%H:%M:%S')}] ERRORE STRUTTURALE: {e}</span>"
+                    st.session_state.sys_logs = f"<span class='err-log'>[{datetime.now().strftime('%H:%M:%S')}] ERRORE NELL'ANALISI DEI DATI: {e}</span>"
 
     if 'm1_buffer' in st.session_state and st.session_state.m1_buffer is not None:
         st.markdown(f"<div class='cmd-window'>{st.session_state.sys_logs}</div><br>", unsafe_allow_html=True)
@@ -793,25 +809,29 @@ def clean_dataset_nexus_v8_quantum(file_path):
         if 'm1_metrics' in st.session_state:
             m = st.session_state.m1_metrics
             
-            st.markdown("<p style='color:#10b981; font-size:0.85rem; font-weight:700;'>⚡ METRICHE DI ARRICCHIMENTO DATABASE:</p>", unsafe_allow_html=True)
+            st.markdown("<p style='color:#10b981; font-size:0.85rem; font-weight:700;'>📊 RISULTATI DEL DATA ENRICHMENT:</p>", unsafe_allow_html=True)
             col1, col2, col3, col4 = st.columns(4)
             with col1:
-                st.metric("Telefoni Formattati", m["telecom"], help="Spazi rimossi e prefisso internazionale (+39) iniettato per compatibilità WhatsApp/SMS.")
+                st.metric("Profili Sincronizzati", m["squashed"], help="Frammenti di contatto sparsi uniti in un unico profilo CRM solido.")
             with col2:
-                st.metric("Contatti Uniti", m["squashed"], help="Dati frammentati su righe doppie riassemblati in un unico profilo CRM completo.")
+                st.metric("Numeri Formattati", m["telecom"], help="Numeri di telefono allineati allo standard internazionale (+39).")
             with col3:
-                st.metric("Dati Spazzatura Eliminati", m["toxic_purged"], help="Nomi falsi (es. 'admin'), simboli speciali e domini fittizi piallati.")
+                st.metric("Dati Inutilizzabili Rimossi", m["toxic_purged"], help="Nomi falsi e email spam ripuliti dal database.")
             with col4:
-                st.metric("Aziende B2B Estratte", m["b2b_domains"], help="Nuova colonna generata automaticamente per isolare i prospect aziendali.")
+                st.metric("Aziende B2B Identificate", m["b2b_domains"], help="Domini estratti automaticamente per le tue campagne B2B.")
 
-        st.markdown("<p style='color:#A1A1AA; font-size:0.85rem; font-weight:600; margin-top:15px;'>ANTEPRIMA DEL DATABASE (Scorri a destra per visualizzare i telefoni allineati):</p>", unsafe_allow_html=True)
+        st.markdown("<p style='color:#A1A1AA; font-size:0.85rem; font-weight:600; margin-top:15px;'>ANTEPRIMA DATABASE (Guarda la nuova colonna 'Rating Contatto'):</p>", unsafe_allow_html=True)
         st.dataframe(st.session_state.m1_buffer, use_container_width=True)
         
-        if lead_capture_gateway("mod_01", "Scarica Database Premium V8"):
+        if lead_capture_gateway("mod_01", "Scarica Database Ottimizzato"):
+            # Generazione nome file dinamico con data odierna
+            from datetime import datetime
+            file_name = f"nexus_database_ottimizzato_{datetime.now().strftime('%Y-%m-%d')}.csv"
+            
             st.download_button(
                 "📥 SCARICA DATABASE PERFETTO (.CSV)",
                 st.session_state.m1_buffer.to_csv(index=False).encode('utf-8-sig'),
-                "database_premium_v8.csv",
+                file_name,
                 "text/csv"
             )
 
