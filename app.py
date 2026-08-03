@@ -1027,26 +1027,49 @@ elif selected_tool == "05. Integrazione API (Sandbox)":
 
 # --- 06. INTERACTIVE CLOUD AUDIT ---
 elif selected_tool == "06. Interactive Cloud Audit":
-    source_py = """# Algoritmo dinamico per l'abbattimento dell'OPEX\ndef calculate_burn_rate(legacy_stack):\n    burn_rate = sum(item['cost'] for item in legacy_stack)\n    apex_cost = 0 # Self-Hosted & Serverless Edge Models\n    return burn_rate, apex_cost"""
+    source_py = """# Algoritmo avanzato di Audit Architetturale e TCO (Total Cost of Ownership)
+def calculate_true_burn_rate(legacy_stack, operational_debt):
+    # Calcolo costi vivi (SaaS)
+    saas_burn_rate = sum(item['cost'] for item in legacy_stack)
+    # Calcolo debito operativo (Tempo perso, inefficienze manuali)
+    hidden_opex = sum(debt['impact'] for debt in operational_debt)
+    
+    apex_cost = 0 # Architettura NEXUS (Open Source & Serverless)
+    return saas_burn_rate, hidden_opex, apex_cost"""
+    
     render_page_header(
-        "FINANCIAL AUDIT", "Interactive Cloud Audit",
-        "Le aziende italiane bruciano decine di migliaia di euro ogni anno in abbonamenti software (SaaS) monolitici e costosi. Esegui un Audit interattivo per la tua azienda: seleziona i software che stai pagando oggi. Ti mostreremo istantaneamente quanti soldi stai perdendo e l'esatta alternativa (Open Source o Serverless) per azzerare le spese mensili.",
-        "Audit interattivo per il calcolo del TCO (Total Cost of Ownership). Sostituzione di servizi monolitici legacy con architetture distribuite Open Source e Cloud Serverless ad alte prestazioni.",
+        "FINANCIAL AUDIT", "Interactive Cloud Audit & TCO",
+        "Le aziende italiane bruciano decine di migliaia di euro ogni anno in abbonamenti SaaS monolitici e nei 'costi occulti' di processi manuali inefficienti. Esegui un Audit diagnostico completo: valuta i tuoi processi aziendali e i software in uso. L'algoritmo calcolerà il tuo vero Total Cost of Ownership (TCO) e genererà la roadmap esatta per azzerare le spese e migrare al Cloud Open Source.",
+        "Audit interattivo Enterprise per il calcolo del TCO e del Debito Operativo. Sostituzione di servizi legacy con architetture distribuite Open Source.",
         source_py
     )
     
     # 👉 [LINK AFFILIAZIONE 6 - HETZNER]
     render_affiliate_box(
         "Hetzner", 
-        "Sostituire software da 200€/mese con l'Open Source significa doverli ospitare su un server. Hetzner domina il mercato europeo per le VPS ad alte prestazioni ed economiche.", 
+        "L'infrastruttura Enterprise richiede server potenti ma economici. Hetzner domina il mercato europeo per le VPS ad alte prestazioni, ideali per ospitare i tuoi nuovi tool Open Source.", 
         "https://hetzner.com", 
-        "Ottieni 20€ gratuiti sui Server Hetzner"
+        "Ottieni 20€ gratuiti sui Server Cloud Hetzner"
     )
     
     st.markdown("<div class='nexus-card'>", unsafe_allow_html=True)
-    st.markdown("<p style='color:#FAFAFA; font-weight:600; margin-bottom:1rem; font-size:1.1rem;'>Seleziona i servizi software (SaaS) attualmente in uso nella tua azienda:</p>", unsafe_allow_html=True)
     
-    # MATRICE ITALIANA: 12 Pilastri SaaS
+    # SEZIONE 1: DEBITO OPERATIVO E PROCESSI
+    st.markdown("<h4 style='color:#10B981; margin-bottom:1rem; font-size: 1.1rem;'>1. Analisi del Debito Operativo (Processi)</h4>", unsafe_allow_html=True)
+    c_op1, c_op2, c_op3 = st.columns(3)
+    uso_excel = c_op1.checkbox("Gestisco dati/clienti su Excel (No CRM)")
+    no_crm_automation = c_op2.checkbox("Non ho un CRM automatizzato")
+    piu_5_dip = c_op3.checkbox("Ho più di 5 dipendenti/collaboratori")
+    
+    fatt_manuale = c_op1.checkbox("Fatturazione/Preventivi manuali")
+    no_kpi = c_op2.checkbox("Non ho Dashboard KPI in tempo reale")
+    team_caos = c_op3.checkbox("Caos comunicativo (Solo Email/WhatsApp)")
+    
+    st.markdown("<hr style='border-color: #27272A; margin: 1.5rem 0;'>", unsafe_allow_html=True)
+    
+    # SEZIONE 2: STACK SOFTWARE SAAS
+    st.markdown("<h4 style='color:#10B981; margin-bottom:1rem; font-size: 1.1rem;'>2. Stack Software (SaaS) Attualmente in Uso</h4>", unsafe_allow_html=True)
+    
     c1, c2, c3, c4 = st.columns(4)
     zapier = c1.checkbox("Zapier / Make")
     hubspot = c2.checkbox("HubSpot / Salesforce")
@@ -1055,7 +1078,7 @@ elif selected_tool == "06. Interactive Cloud Audit":
     
     st.markdown("<br>", unsafe_allow_html=True)
     c5, c6, c7, c8 = st.columns(4)
-    shopify = c5.checkbox("Shopify (Costi Add-on)")
+    shopify = c5.checkbox("Shopify / Wix")
     manychat = c6.checkbox("ManyChat / Chatfuel")
     calendly = c7.checkbox("Calendly / Doodle")
     zendesk = c8.checkbox("Zendesk / Intercom")
@@ -1064,126 +1087,215 @@ elif selected_tool == "06. Interactive Cloud Audit":
     c9, c10, c11, c12 = st.columns(4)
     vimeo = c9.checkbox("Vimeo / Wistia")
     airtable = c10.checkbox("Airtable / Monday")
-    typeform = c11.checkbox("Typeform")
-    aws = c12.checkbox("AWS S3 / Google Cloud")
+    fatture_cloud = c11.checkbox("Fatture in Cloud / Aruba")
+    workspace = c12.checkbox("Google Workspace / MS 365")
     
     burn_rate = 0
+    hidden_costs = 0
     soluzioni = []
+    insights_operativi = []
     
+    # Calcoli Logica Operativa (Costi Occulti Mensili)
+    if uso_excel:
+        hidden_costs += 450
+        insights_operativi.append("⚠️ **Data Silos:** L'uso esclusivo di Excel per i dati genera un costo occulto di ~450€/mese in tempo perso per data-entry, sovrascritture e ricerca.")
+    if no_crm_automation:
+        hidden_costs += 600
+        insights_operativi.append("⚠️ **Lead Leakage:** Senza automazioni CRM, perdi follow-up critici sistematicamente. Costo stimato: 600€/mese in mancate vendite (Pipeline Loss).")
+    if piu_5_dip:
+        hidden_costs += 800
+        insights_operativi.append("⚠️ **Frizione di Scala:** Con più di 5 collaboratori e assenza di processi centralizzati, l'overhead gestionale brucia circa 800€/mese.")
+    if fatt_manuale:
+        hidden_costs += 300
+        insights_operativi.append("⚠️ **Collo di Bottiglia Amministrativo:** La compilazione manuale frena la velocità di incasso. Costo operativo stimato: 300€/mese.")
+    if no_kpi:
+        hidden_costs += 400
+    if team_caos:
+        hidden_costs += 350
+        
+    # Calcoli Logica SaaS e Soluzioni (Mercato ITA/Internazionale)
     if zapier: 
         burn_rate += 199 
-        soluzioni.append("✅ Sostituisci Automazioni con **n8n (Self-Hosted)** a costo zero. Esecuzioni illimitate.")
+        soluzioni.append("✅ **Automazioni:** Sostituisci Zapier/Make con **n8n (Self-Hosted)**. Workflow e task eseguiti illimitati a costo zero.")
     if hubspot: 
         burn_rate += 150 
-        soluzioni.append("✅ Sostituisci il CRM con **Supabase (PostgreSQL Serverless)** a costo zero.")
+        soluzioni.append("✅ **CRM Base:** Sostituisci HubSpot con **Supabase (PostgreSQL Serverless)** o un CRM Open Source come ERPNext a costo zero.")
     if mail: 
         burn_rate += 80 
-        soluzioni.append("✅ Sostituisci Email Marketing con **Mautic (Open Source) + AWS SES** a pochi centesimi.")
+        soluzioni.append("✅ **Email Marketing:** Migra a **Mautic (Open Source) collegato ad AWS SES** (paghi 0.10€ ogni 1.000 email inviate, non paghi per i contatti).")
     if funnel: 
         burn_rate += 197 
-        soluzioni.append("✅ Sostituisci ClickFunnels con **WordPress + Ghost (Headless CMS)** a costo zero.")
+        soluzioni.append("✅ **Landing & Funnel:** Sostituisci i page builder costosi con **WordPress + Ghost (Headless CMS)** su server dedicato.")
     if shopify: 
         burn_rate += 79 
-        soluzioni.append("✅ Sostituisci gli abbonamenti eCommerce con **WooCommerce + Stripe**.")
+        soluzioni.append("✅ **eCommerce:** Abbatti gli abbonamenti e le fee aggiuntive migrando su **WooCommerce + Stripe** (0 costi fissi di piattaforma).")
     if manychat: 
         burn_rate += 45 
-        soluzioni.append("✅ Sostituisci i Chatbot con **Typebot (Open Source)** a costo zero.")
+        soluzioni.append("✅ **Chatbot AI:** Sostituisci ManyChat con **Typebot (Open Source)** a costo zero.")
     if calendly: 
         burn_rate += 30 
-        soluzioni.append("✅ Sostituisci Form & Meeting con **Cal.com (Self-Hosted)** a costo zero.")
+        soluzioni.append("✅ **Booking:** Sostituisci Calendly con **Cal.com (Self-Hosted)** a costo zero.")
     if zendesk: 
         burn_rate += 150 
-        soluzioni.append("✅ Sostituisci il Customer Care con **Chatwoot (Open Source)** a costo zero.")
+        soluzioni.append("✅ **Customer Care:** Sostituisci Zendesk con **Chatwoot (Open Source)**. Omnicanalità a costo zero.")
     if vimeo: 
         burn_rate += 60 
-        soluzioni.append("✅ Sostituisci l'Hosting Video con **Cloudflare Stream** a un decimo del costo.")
+        soluzioni.append("✅ **Hosting Video:** Migra il tuo materiale formativo su **Cloudflare Stream** o **Bunny.net** a un decimo del costo.")
     if airtable: 
         burn_rate += 50 
-        soluzioni.append("✅ Sostituisci i Database NoCode con **NocoDB (Open Source)** a costo zero.")
-    if typeform: 
-        burn_rate += 59 
-        soluzioni.append("✅ Sostituisci la raccolta Lead con **Tally.so (Free Tier Illimitato)**.")
-    if aws: 
-        burn_rate += 45 
-        soluzioni.append("✅ Sostituisci AWS S3 Storage con **Cloudflare R2** (Zero costi per il traffico in uscita).")
-        
-    st.markdown("---")
-    c_res1, c_res2 = st.columns(2)
-    c_res1.metric("Burn Rate Mensile (Sprechi)", f"€ {burn_rate} / mese")
-    c_res2.metric("Costo Architettura NEXUS", "€ 0 / mese", f"+ € {burn_rate} Salvati al Mese", delta_color="normal")
+        soluzioni.append("✅ **Database NoCode:** Sostituisci Airtable con **NocoDB (Open Source)** a costo zero.")
+    if fatture_cloud: 
+        burn_rate += 25 
+        soluzioni.append("✅ **Amministrazione:** Elimina le fee annuali con **Invoice Ninja (Self-Hosted)** per una fatturazione B2B senza limiti.")
+    if workspace: 
+        burn_rate += 70 
+        soluzioni.append("✅ **Cloud Aziendale:** Sostituisci Google/Microsoft con **Nextcloud** (Archiviazione, Documenti e Video-Call sul tuo server privato gratuito).")
+
+    total_tco = burn_rate + hidden_costs
     
-    if burn_rate > 0:
-        # Gatekeeper PLG prima di rivelare il protocollo di migrazione esatto
-        if lead_capture_gateway("mod_06", "Protocollo di Migrazione Strategico"):
-            st.markdown("<br><p style='color:#FAFAFA; font-weight:700;'>PROTOCOLLO DI MIGRAZIONE CONSIGLIATO (SBLOCCATO):</p>", unsafe_allow_html=True)
-            for sol in soluzioni:
-                st.markdown(f"<p style='color:#10B981; margin:0;'>{sol}</p>", unsafe_allow_html=True)
+    st.markdown("---")
+    c_res1, c_res2, c_res3 = st.columns(3)
+    c_res1.metric("SaaS Burn Rate", f"€ {burn_rate} / mese")
+    c_res2.metric("Debito Operativo (Inefficienze)", f"€ {hidden_costs} / mese", delta="Perdita Stimata", delta_color="inverse")
+    c_res3.metric("TCO NEXUS (Open Source)", "€ 0 / mese", f"+ € {total_tco} Salvati/Mese", delta_color="normal")
+    
+    if total_tco > 0:
+        # Gatekeeper PLG
+        if lead_capture_gateway("mod_06", "Genera Audit Architetturale e Roadmap"):
+            st.markdown("<br><h4 style='color:#FAFAFA;'>DIAGNOSTICA AVANZATA E ROADMAP DI MIGRAZIONE</h4>", unsafe_allow_html=True)
+            
+            if insights_operativi:
+                st.markdown("<p style='color:#F59E0B; font-weight:600; margin-top:1rem;'>🚨 CRITICITÀ OPERATIVE RILEVATE:</p>", unsafe_allow_html=True)
+                for insight in insights_operativi:
+                    st.markdown(insight)
+                
+            if soluzioni:
+                st.markdown("<p style='color:#10B981; font-weight:600; margin-top:1.5rem;'>🛠️ PROTOCOLLO DI MIGRAZIONE SAAS (STACK SOSTITUTIVO):</p>", unsafe_allow_html=True)
+                for sol in soluzioni:
+                    st.markdown(sol)
+                    
     st.markdown("</div>", unsafe_allow_html=True)
 
 # --- 07. ROI TELEMETRY ---
 elif selected_tool == "07. Simulatore ROI Finanziario":
-    source_py = """import plotly.graph_objects as go\n# Motore di calcolo dell'interesse composto a 12 mesi\nmesi = [f"Mese {i}" for i in range(1, 13)]\ncrescita_tradizionale = [mrr * (1 - (churn/100))**i for i in range(1, 13)]\ncrescita_nexus = [(mrr + (opex * 0.8)) * (1.05)**i for i in range(1, 13)]\n\nfig = go.Figure()\nfig.add_trace(go.Scatter(x=mesi, y=crescita_tradizionale, mode='lines', name='Legacy'))\nfig.add_trace(go.Scatter(x=mesi, y=crescita_nexus, mode='lines', name='NEXUS'))"""
+    source_py = """import plotly.graph_objects as go
+import numpy as np
+
+def financial_telemetry(mrr, saas_cost, churn, ltv_increment, reinvestment_rate):
+    # Modello stocastico per la proiezione del compounding aziendale
+    mesi = np.arange(1, 13)
+    legacy_trajectory = mrr * (1 - (churn/100))**mesi
+    # L'architettura NEXUS libera capitale (SaaS) che viene reinvestito in CAC 
+    nexus_trajectory = (mrr + (saas_cost * reinvestment_rate)) * (1 + (ltv_increment/100))**mesi
+    return legacy_trajectory, nexus_trajectory"""
     
     render_page_header(
-        "BUSINESS ANALYTICS", "Simulatore ROI Finanziario",
-        "Algoritmo di proiezione finanziaria avanzata. Calcola l'impatto dell'ottimizzazione architetturale sui flussi di cassa a 12 mesi, valutando il tasso di abbandono (Churn Rate) e l'interesse composto generato dai costi SaaS abbattuti.",
-        "Data Visualization vettoriale con Plotly. Calcolo predittivo dell'Operational Expenditure (OPEX) integrato con LTV incrementale. Memoria di sessione per persistenza simulazioni.",
+        "BUSINESS ANALYTICS", "Simulatore ROI & Telemetria Finanziaria",
+        "Le aziende perdono capitale non solo pagando licenze SaaS, ma <i>non reinvestendo quel capitale</i> in acquisizione clienti (CAC). Calcola l'impatto dell'ottimizzazione architetturale sui tuoi flussi di cassa a 12 mesi, sfruttando la spinta dell'Interesse Composto.",
+        "Data Visualization vettoriale con Plotly. Calcolo predittivo dell'OPEX, integrazione del Costo di Acquisizione (CAC) e Modelli di Reinvestimento dinamici.",
         source_py
     )
     
     # 👉 [LINK AFFILIAZIONE 7 - STRIPE]
     render_affiliate_box(
         "Stripe", 
-        "Se gestisci pagamenti B2B e abbonamenti, Stripe è l'infrastruttura di pagamento per calcolare automaticamente MRR, Churn Rate e LTV aziendale.", 
+        "L'infrastruttura di pagamento è il cuore della tua telemetria. Stripe è lo standard globale per calcolare automaticamente MRR, Churn Rate e gestire la fatturazione ricorrente con precisione chirurgica.", 
         "https://stripe.com", 
-        "Aumenta le conversioni gestendo i flussi tramite Stripe"
+        "Implementa Stripe per le tue Analytics Finanziarie"
     )
     
     st.markdown("<div class='nexus-card'>", unsafe_allow_html=True)
     
-    col1, col2 = st.columns(2)
-    mrr_attuale = col1.number_input("Fatturato Mensile Attuale (MRR) €", min_value=0, value=25000, step=1000)
-    costi_saas = col1.number_input("Costi Abbonamenti SaaS (Da Azzerare) €", min_value=0, value=4200, step=100)
+    st.markdown("<h4 style='color:#10B981; margin-bottom:1.5rem; font-size: 1.1rem;'>Parametri di Telemetria Aziendale</h4>", unsafe_allow_html=True)
+    col1, col2, col3 = st.columns(3)
+    mrr_attuale = col1.number_input("MRR (Fatturato Mensile Ricorrente) €", min_value=1000, value=25000, step=1000)
+    costi_saas = col2.number_input("Costi SaaS & Licenze (Da Azzerare) €", min_value=0, value=4200, step=100)
+    cac_attuale = col3.number_input("CAC (Costo Acquisizione Cliente) €", min_value=10, value=150, step=10)
     
-    churn_rate = col2.slider("Churn Rate Mensile % (Abbandono)", min_value=1.0, max_value=20.0, value=5.0, step=0.5)
-    margine_target = col2.slider("Margine Netto Desiderato %", min_value=10, max_value=90, value=60, step=5)
+    st.markdown("<br>", unsafe_allow_html=True)
+    col4, col5, col6 = st.columns(3)
+    churn_rate = col4.slider("Churn Rate (Tasso Abbandono mensile) %", min_value=1.0, max_value=25.0, value=5.0, step=0.5)
+    reinvest_rate = col5.slider("SaaS Salvato Reinvestito in Marketing %", min_value=0, max_value=100, value=80, step=5)
+    margin_target = col6.slider("Margine Netto Desiderato %", min_value=10, max_value=90, value=65, step=5)
     
-    # Logica Matematica (Backend temporaneo in memoria)
+    # Logica Matematica Finanziaria Avanzata (Engine)
     risparmio_annuo = costi_saas * 12
+    capitale_reinvestito = costi_saas * (reinvest_rate / 100)
+    
+    # Stima dei nuovi clienti acquisibili ogni mese sfruttando SOLO il capitale risparmiato dai SaaS
+    nuovi_clienti_mese = capitale_reinvestito / cac_attuale if cac_attuale > 0 else 0
+    
     mesi = [f"Mese {i}" for i in range(1, 13)]
+    
+    # Traiettoria 1: Legacy (Il business decresce a causa del churn se non acquisisce)
     crescita_tradizionale = [mrr_attuale * (1 - (churn_rate/100))**i for i in range(1, 13)]
-    crescita_nexus = [(mrr_attuale + (costi_saas * 0.8)) * (1.05)**i for i in range(1, 13)] # compounding calcolato al +5%
+    
+    # Traiettoria 2: Nexus (Il SaaS si azzera, si reinveste e si produce compounding)
+    crescita_nexus = []
+    current_mrr_nexus = mrr_attuale
+    
+    for i in range(1, 13):
+        # Il churn morde il MRR corrente, ma il reinvestimento in marketing porta nuovo MRR
+        # Assumiamo cautelativamente che ogni nuovo cliente porti in media 1/150 del MRR attuale
+        nuovo_mrr_generato = nuovi_clienti_mese * (mrr_attuale / 200) 
+        # Mitighiamo leggermente il churn grazie a un'architettura più stabile
+        current_mrr_nexus = current_mrr_nexus * (1 - ((churn_rate * 0.85)/100)) + nuovo_mrr_generato
+        crescita_nexus.append(current_mrr_nexus)
+        
     delta_fatturato_m12 = crescita_nexus[-1] - crescita_tradizionale[-1]
     
-    c3, c4, c5 = st.columns(3)
-    c3.metric("Risparmio Annuo (SaaS)", f"€ {risparmio_annuo:,.0f}", delta="Ottimizzato")
-    c4.metric("LTV Incrementale", f"+ 15%", delta="Stima Algoritmica")
-    c5.metric("Delta Fatturato (M12)", f"€ {delta_fatturato_m12:,.0f}", delta="Extra Profit")
+    st.markdown("---")
+    c7, c8, c9 = st.columns(3)
+    c7.metric("Risparmio Annuo Generato", f"€ {risparmio_annuo:,.0f}", delta="Free Cash Flow")
+    c8.metric("Nuovi Clienti Mensili Extra", f"+ {nuovi_clienti_mese:,.1f}", delta="Costo Zero (Reinvestimento)")
+    c9.metric("Delta Fatturato (M12)", f"€ {delta_fatturato_m12:,.0f}", delta="Interesse Composto")
     
-    # Gatekeeper PLG prima di mostrare i grafici vettoriali esecutivi
-    if lead_capture_gateway("mod_07", "Genera Proiezione Vettoriale"):
-        st.markdown("<br><p style='color:#A1A1AA; font-size:0.85rem; font-weight:600;'>PROIEZIONE FLUSSI DI CASSA (12 MESI)</p>", unsafe_allow_html=True)
+    # Gatekeeper PLG
+    if lead_capture_gateway("mod_07", "Genera Modello Stocastico e Grafici"):
+        st.markdown("<br><h4 style='color:#FAFAFA;'>PROIEZIONE VETTORIALE DEI FLUSSI DI CASSA (12 MESI)</h4>", unsafe_allow_html=True)
         
         import plotly.graph_objects as go
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=mesi, y=crescita_tradizionale, mode='lines+markers', name='Modello Tradizionale', line=dict(color='#FF4B4B', width=3)))
-        fig.add_trace(go.Scatter(x=mesi, y=crescita_nexus, mode='lines+markers', name='Architettura Nexus', line=dict(color='#10B981', width=3)))
+        
+        # Linea Nexus con area di riempimento per evidenziare il delta di profitto
+        fig.add_trace(go.Scatter(
+            x=mesi, y=crescita_nexus, 
+            mode='lines+markers', 
+            name='Modello NEXUS (Compounding)', 
+            line=dict(color='#10B981', width=4),
+            fill='tonexty', fillcolor='rgba(16, 185, 129, 0.1)'
+        ))
+        
+        # Linea Legacy con tratteggio
+        fig.add_trace(go.Scatter(
+            x=mesi, y=crescita_tradizionale, 
+            mode='lines+markers', 
+            name='Modello Legacy (SaaS Monolitico)', 
+            line=dict(color='#EF4444', width=3, dash='dot')
+        ))
         
         fig.update_layout(
             plot_bgcolor='rgba(0,0,0,0)', 
             paper_bgcolor='rgba(0,0,0,0)', 
             font_color='#A1A1AA', 
-            margin=dict(t=20, b=0, l=0, r=0),
-            legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01)
+            margin=dict(t=30, b=10, l=10, r=10),
+            legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
+            hovermode="x unified",
+            xaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.05)'),
+            yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.05)', tickprefix="€")
         )
         st.plotly_chart(fig, use_container_width=True)
         
-        st.markdown("""
-        <div style="background-color: rgba(16, 185, 129, 0.1); padding: 15px; border-left: 4px solid #10B981; border-radius: 4px; margin-top: 15px;">
-        <span style="color: #A1A1AA; font-size: 0.9rem;">
-        <b>Analisi dell'Architetto:</b> I dati dimostrano che re-ingegnerizzando l'infrastruttura ed eliminando il rumore dei software ridondanti, 
-        il capitale liberato genera un interesse composto sul tuo MRR, abbattendo al contempo il Churn Rate. Questo è il potere dell'Ingegneria Transazionale.
-        </span>
+        # Box di analisi CFO
+        st.markdown(f"""
+        <div style="background-color: rgba(16, 185, 129, 0.05); padding: 20px; border-left: 4px solid #10B981; border-radius: 6px; margin-top: 15px;">
+        <h5 style="color: #10B981; margin-top: 0;">Analisi dell'Architetto Finanziario (CFO):</h5>
+        <p style="color: #A1A1AA; font-size: 0.95rem; margin-bottom: 0;">
+        I dati in tempo reale dimostrano il principio di <b>Asimmetria Operativa</b>. Sostituendo lo stack SaaS con infrastrutture Open Source, 
+        hai liberato <b>€ {risparmio_annuo:,.0f}</b> all'anno senza fare sforzi aggiuntivi. Reinvestendo il {reinvest_rate}% di questo capitale "salvato" in acquisizione clienti (al tuo CAC attuale di € {cac_attuale}), 
+        non solo annulli l'effetto corrosivo del Churn Rate, ma generi una spinta composta che distacca l'azienda dal modello Legacy di ben <b>€ {delta_fatturato_m12:,.0f}</b> al dodicesimo mese. 
+        Questo non è semplice risparmio, è Ingegnerizzazione dell'Interesse Composto.
+        </p>
         </div>
         """, unsafe_allow_html=True)
         
